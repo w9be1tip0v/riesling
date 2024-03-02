@@ -1,0 +1,5 @@
+streamlit
+requests
+requests-cache
+python-dotenv
+plotly

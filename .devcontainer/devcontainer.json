@@ -1,0 +1,33 @@
+{
+    "name": "Python 3 & Streamlit",
+    "build": {
+        "context": "..", // Path to the Dockerfile
+        "dockerfile": "Dockerfile"
+    },
+    "mounts": [
+        "source=${localWorkspaceFolder},target=/workspace,type=bind"
+    ],
+    "customizations": {
+        "vscode": {
+            "settings": {
+                "terminal.integrated.shell.linux": "/bin/bash",
+                "python.pythonPath": "/usr/local/bin/python",
+                "python.linting.enabled": true,
+                "python.linting.pylintEnabled": true,
+                "python.formatting.autopep8Path": "/usr/local/bin/autopep8",
+                "python.formatting.blackPath": "/usr/local/bin/black",
+                "python.formatting.provider": "black"
+                },
+            "extensions": [
+                "ms-python.python",
+                "ms-python.vscode-pylance"
+            ]
+        }
+    },
+    "forwardPorts": [
+        8501 // Default port for Streamlit
+    ],
+    "postCreateCommand": "pip install -r requirements.txt",
+    "remoteUser": "root",
+    "workspaceFolder": "/workspace"
+}
