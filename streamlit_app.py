@@ -13,7 +13,7 @@ st.set_page_config(page_title='Polygon Data Viewer', layout="wide")
 st.title('Polygon Data Viewer')
 
 # Read environment secret for Streamlit App
-API_KEY = st.secret["API_KEY"]
+API_KEY = st.secrets["API_KEY"]
 if API_KEY is None:
     st.error("API_KEY is not set in .env file")
     st.stop()
@@ -80,14 +80,16 @@ def setup_logging():
 
 #### Define the Streamlit app mode ####
 
-# Read the API_KEY from .env file
-API_KEY = st.secret["API_KEY"]
-
 # Initialize the logger
 logger = setup_logging()
 
+# Creat .cache directory if it doesn't exist 
+cache_dir = '.cache'
+if not os.path.exists(cache_dir):
+    os.makedirs(cache_dir)
+
 # Enable requests_cache to cache API responses
-requests_cache.install_cache('polygon_cache', expire_after=1800)  # 30 minutes
+requests_cache.install_cache('.cache/polygon_api_cache', expire_after=1800)  # 30 minutes
 
 # Apply comma formatting to the entire DataFrame
 def format_with_comma(df):

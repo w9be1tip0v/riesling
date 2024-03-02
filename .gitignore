@@ -162,3 +162,10 @@ cython_debug/
 # Log files
 *.log
 .log/*
+
+# Cache files
+.cache/
+.cached_data/
+
+# Streamlit secrets
+.streamlit/secrets.toml

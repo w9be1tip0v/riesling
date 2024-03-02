@@ -12,8 +12,13 @@ API_KEY = os.getenv('API_KEY')
 # Initialize the logger
 logger = config.log_config.setup_logging()
 
+# Creat .cache directory if it doesn't exist 
+cache_dir = '.cache'
+if not os.path.exists(cache_dir):
+    os.makedirs(cache_dir)
+
 # Enable requests_cache to cache API responses
-requests_cache.install_cache('polygon_cache', expire_after=1800)  # 30 minutes
+requests_cache.install_cache('.cache/polygon_api_cache', expire_after=1800)  # 30 minutes
 
 # Apply comma formatting to the entire DataFrame
 def format_with_comma(df):
