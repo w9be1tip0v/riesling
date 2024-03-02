@@ -13,4 +13,4 @@ The application is fully depended on Polygon API.<BR>
 IF the app shows error status 4XX or 5XX, PLEASE CHECK YOUR API KEY AND POLYGON API SERVER STATUS BELOW.
 
 ## Polygon API Server Status
-https://polygon.io/status
+https://polygon.io/system
