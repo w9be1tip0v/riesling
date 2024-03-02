@@ -5,12 +5,13 @@ from datetime import datetime
 from polygon_api import get_historical_data_as_df, get_financials_as_df, create_financials_dataframe, get_company_details, get_stock_splits, get_dividends_data, get_news
 from chart import plot_candlestick_chart
 from config.display_config import display_data_with_default_sort, escape_markdown
-from datetime import datetime
+
 
 # Streamlit UI
 st.set_page_config(page_title='Polygon Data Viewer', layout="wide")
 st.title('Polygon Data Viewer')
 
+# Read envinmnet for Development
 API_KEY = os.getenv('API_KEY')
 if API_KEY is None:
     st.error("API_KEY is not set in .env file")
