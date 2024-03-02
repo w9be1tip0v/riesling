@@ -84,8 +84,13 @@ elif app_mode == 'Financials Data':
     st.header("Financials Data")
     ticker = st.text_input('Enter ticker symbol', 'AAPL')
     limit = st.number_input('Enter the number of financial records to retrieve (min=1, max=100)', min_value=1, max_value=100, value=30) # Default to 30
+    # Dropdown for timeframe
+    timeframe = st.selectbox('Select timeframe', options=['', 'annual', 'quarterly', 'ttm'], index=0)
+
     if st.button('Get Financials'):
-        financials_data = get_financials_as_df(ticker, limit, API_KEY)
+        # Pass None if the selected option is 'None'
+        timeframe_to_pass = None if timeframe == '' else timeframe
+        financials_data = get_financials_as_df(ticker, limit, API_KEY, timeframe=timeframe_to_pass)
         df_financials = create_financials_dataframe(financials_data)
         display_data_with_default_sort(df_financials, 'End Date')
 

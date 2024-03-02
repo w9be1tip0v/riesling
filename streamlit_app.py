@@ -120,9 +120,11 @@ def get_historical_data_as_df(ticker, from_date, to_date, adjusted, timespan, ap
 
 
 # Get financials data from Polygon API
-def get_financials_as_df(ticker, limit, api_key):
+def get_financials_as_df(ticker, limit, api_key, timeframe=None):
     url = f"https://api.polygon.io/vX/reference/financials?ticker={ticker}&limit={limit}&apiKey={api_key}"
-    logger.info(f"Requesting financials data for {ticker} with limit {limit}")
+    if timeframe:
+        url += f"&timeframe={timeframe}"
+    logger.info(f"Requesting financials data for {ticker} with limit {limit} and timeframe {timeframe}")
     response = requests.get(url)
     if response.status_code == 200:
         data = response.json()['results']
@@ -131,6 +133,7 @@ def get_financials_as_df(ticker, limit, api_key):
     else:
         logger.error(f"Failed to retrieve financials data for {ticker}. Status code: {response.status_code}, Response: {response.text}")
         return []
+
 
 
 # Create a dataframe from the financials data
@@ -347,8 +350,13 @@ elif app_mode == 'Financials Data':
     st.header("Financials Data")
     ticker = st.text_input('Enter ticker symbol', 'AAPL')
     limit = st.number_input('Enter the number of financial records to retrieve (min=1, max=100)', min_value=1, max_value=100, value=30) # Default to 30
+    # Dropdown for timeframe
+    timeframe = st.selectbox('Select timeframe', options=['', 'annual', 'quarterly', 'ttm'], index=0)
+
     if st.button('Get Financials'):
-        financials_data = get_financials_as_df(ticker, limit, API_KEY)
+        # Pass None if the selected option is 'None'
+        timeframe_to_pass = None if timeframe == '' else timeframe
+        financials_data = get_financials_as_df(ticker, limit, API_KEY, timeframe=timeframe_to_pass)
         df_financials = create_financials_dataframe(financials_data)
         display_data_with_default_sort(df_financials, 'End Date')
 

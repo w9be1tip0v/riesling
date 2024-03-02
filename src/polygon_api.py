@@ -50,9 +50,11 @@ def get_historical_data_as_df(ticker, from_date, to_date, adjusted, timespan, ap
 
 
 # Get financials data from Polygon API
-def get_financials_as_df(ticker, limit, api_key):
+def get_financials_as_df(ticker, limit, api_key, timeframe=None):
     url = f"https://api.polygon.io/vX/reference/financials?ticker={ticker}&limit={limit}&apiKey={api_key}"
-    logger.info(f"Requesting financials data for {ticker} with limit {limit}")
+    if timeframe:
+        url += f"&timeframe={timeframe}"
+    logger.info(f"Requesting financials data for {ticker} with limit {limit} and timeframe {timeframe}")
     response = requests.get(url)
     if response.status_code == 200:
         data = response.json()['results']
