@@ -21,4 +21,4 @@ RUN pip install --upgrade pip
 EXPOSE 8501
 
 # Run the command to start the application
-CMD ["streamlit", "run", "main.py", "--server.port", "8501"]
+CMD ["streamlit", "run", "src/main.py", "--server.port", "8501"]

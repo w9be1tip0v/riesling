@@ -83,7 +83,7 @@ elif app_mode == 'Historical Stock Data':
 elif app_mode == 'Financials Data':
     st.header("Financials Data")
     ticker = st.text_input('Enter ticker symbol', 'AAPL')
-    limit = st.number_input('Enter the number of financial records to retrieve', min_value=1, value=5)
+    limit = st.number_input('Enter the number of financial records to retrieve (min=1, max=100)', min_value=1, max_value=100, value=30) # Default to 30
     if st.button('Get Financials'):
         financials_data = get_financials_as_df(ticker, limit, API_KEY)
         df_financials = create_financials_dataframe(financials_data)
