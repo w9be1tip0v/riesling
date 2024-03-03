@@ -1,12 +1,12 @@
 import streamlit as st
-import requests
-import requests_cache
 import pandas as pd
 import plotly.graph_objects as go
-from datetime import datetime
+import requests
+import os
 import logging
 from logging.handlers import TimedRotatingFileHandler
-import os
+from datetime import datetime
+
 
 # Metadata
 st.set_page_config(
@@ -93,14 +93,6 @@ def setup_logging():
 # Initialize the logger
 logger = setup_logging()
 
-# Creat .cache directory if it doesn't exist 
-cache_dir = '.cache'
-if not os.path.exists(cache_dir):
-    os.makedirs(cache_dir)
-
-# Enable requests_cache to cache API responses
-requests_cache.install_cache('.cache/polygon_api_cache', expire_after=1800)  # 30 minutes
-
 # Apply comma formatting to the entire DataFrame
 def format_with_comma(df):
     for col in df.select_dtypes(include=['float', 'int']).columns:
@@ -108,6 +100,7 @@ def format_with_comma(df):
     return df
 
 # Get historical stock data from Polygon API
+@st.cache_data(ttl=1800, max_entries=100, show_spinner='Fetching data from API...')
 def get_historical_data_as_df(ticker, from_date, to_date, adjusted, timespan, api_key):
     adjusted_param = 'true' if adjusted else 'false'
     url = f"https://api.polygon.io/v2/aggs/ticker/{ticker}/range/1/{timespan}/{from_date}/{to_date}?adjusted={adjusted_param}&apiKey={api_key}"
@@ -131,6 +124,7 @@ def get_historical_data_as_df(ticker, from_date, to_date, adjusted, timespan, ap
 
 
 # Get financials data from Polygon API
+@st.cache_data(ttl=1800, max_entries=100, show_spinner='Fetching data from API...')
 def get_financials_as_df(ticker, limit, api_key, timeframe=None):
     url = f"https://api.polygon.io/vX/reference/financials?ticker={ticker}&limit={limit}&apiKey={api_key}"
     if timeframe:
@@ -148,6 +142,7 @@ def get_financials_as_df(ticker, limit, api_key, timeframe=None):
 
 
 # Create a dataframe from the financials data
+@st.cache_data(ttl=1800, max_entries=100, show_spinner=True)
 def create_financials_dataframe(data):
     logger.info(f"Starting to create dataframe from financials data. Number of records: {len(data)}")
     records = []
@@ -198,6 +193,7 @@ def create_financials_dataframe(data):
     return df
 
 # Get company details from Polygon API
+@st.cache_data(ttl=1800, max_entries=100, show_spinner='Fetching data from API...')
 def get_company_details(ticker, api_key):
     logger.info(f"Requesting company details for ticker: {ticker}")
     url = f"https://api.polygon.io/v3/reference/tickers/{ticker}?apiKey={api_key}"
@@ -216,6 +212,7 @@ def get_company_details(ticker, api_key):
         raise Exception(f"Failed to retrieve company details: {response.status_code}")
     
 # Get stock splits data from Polygon API
+@st.cache_data(ttl=1800, max_entries=100, show_spinner='Fetching data from API...')
 def get_stock_splits(ticker=None, limit=50, **date_filters):
     logger.info(f"Requesting stock splits data for ticker: {ticker if ticker else 'All Tickers'} with limit: {limit}")
     # Base URL
@@ -248,6 +245,7 @@ def get_stock_splits(ticker=None, limit=50, **date_filters):
         raise Exception(f"API request failed with status code {response.status_code}: {response.text}")
 
 # Get dividends data from Polygon API
+@st.cache_data(ttl=1800, max_entries=100, show_spinner='Fetching data from API...')
 def get_dividends_data(ticker, limit, api_key):
     logger.info(f"Requesting dividends data for ticker: {ticker} with limit: {limit}")
     url = f"https://api.polygon.io/v3/reference/dividends?ticker={ticker}&limit={limit}&apiKey={api_key}"
@@ -265,7 +263,8 @@ def get_dividends_data(ticker, limit, api_key):
         raise Exception(f"API request failed with status code {response.status_code}: {response.text}")
     
 
-# Get news from Polygon API    
+# Get news from Polygon API 
+@st.cache_data(ttl=1800, max_entries=100, show_spinner='Fetching data from API...')
 def get_news(ticker=None, limit=5, api_key=API_KEY):
     # Use the ticker-specific news URL if ticker is provided
     if ticker:
