@@ -8,15 +8,26 @@ import logging
 from logging.handlers import TimedRotatingFileHandler
 import os
 
-# Streamlit app configuration
-st.set_page_config(page_title='Polygon Data Viewer', layout="wide")
-st.title('Polygon Data Viewer')
+# Metadata
+st.set_page_config(
+    page_title='Polygon Data Viewer',
+    page_icon=':hatched_chick:',
+    layout="centered",
+    initial_sidebar_state="collapsed",
+    menu_items={
+        'Get Help': None,
+        'Report a bug': None,
+        'About': "#### This is a Streamlit app to view financial data from the Polygon API.\n\nCopyright 2024, PyWeOp. All rights reserved.\n\n"
+    }
+)
 
-# Read environment secret for Streamlit App
+
+# Read the API key from the secrets.toml file (stored in the .streamlit directory)
 API_KEY = st.secrets["API_KEY"]
 if API_KEY is None:
     st.error("API_KEY is not set in .env file")
     st.stop()
+
 
 ### Configure the Streamlit app ###
     
@@ -282,12 +293,15 @@ def plot_candlestick_chart(df):
     st.plotly_chart(fig, use_container_width=True)
 
 
+### Streamlit UI ###
 
+# Display the app title
+st.title("Polygon Data Viewer")
 
 # Sidebar
 app_mode = st.sidebar.selectbox(
-    'Choose the data type',
-    ['Select', 'Company Detail', 'Historical Stock Data', 'Financials Data', 'Stock Splits Data', 'Dividends Data']
+    'Choose the Market Data to View:',
+    ['Select', 'Company Detail', 'Historical Stock Data', 'Company Financials Data', 'Stock Splits Data', 'Dividends Data']
 )
 
 # Top-level header
@@ -346,8 +360,8 @@ elif app_mode == 'Historical Stock Data':
 
 
 # Financials Data
-elif app_mode == 'Financials Data':
-    st.header("Financials Data")
+elif app_mode == 'Company Financials Data':
+    st.header("Company Financials Data")
     ticker = st.text_input('Enter ticker symbol', 'AAPL')
     limit = st.number_input('Enter the number of financial records to retrieve (min=1, max=100)', min_value=1, max_value=100, value=30) # Default to 30
     # Dropdown for timeframe
