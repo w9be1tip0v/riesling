@@ -1,5 +1,5 @@
 import streamlit as st
-import os
+import streamlit_authenticator as sa
 import pandas as pd
 from datetime import datetime
 from polygon_api import get_historical_data_as_df, get_financials_as_df, create_financials_dataframe, get_company_details, get_stock_splits, get_dividends_data, get_news
@@ -21,24 +21,30 @@ st.set_page_config(
 )
 
 # Read envinmnet for Development
-API_KEY = os.getenv('API_KEY')
+API_KEY = st.secrets["API_KEY"]
 if API_KEY is None:
     st.error("API_KEY is not set in .env file")
     st.stop()
 
-### Streamlit UI ###
 
+### Streamlit UI ###
+    
 # Display the title of the app
 st.title('Polygon Data Viewer')
 
-# Sidebar
+# Set the app mode to 'Select' if it's not set
+if 'app_mode' not in st.session_state:
+    st.session_state.app_mode = 'Select'
+
+# Sidebar to select the market data to view
 app_mode = st.sidebar.selectbox(
     'Choose the Market Data to View:',
     ['Select', 'Company Detail', 'Historical Stock Data', 'Company Financials Data', 'Stock Splits Data', 'Dividends Data']
 )
+st.session_state.app_mode = app_mode
 
 # Top-level header
-if app_mode == 'Select':
+if st.session_state.app_mode == 'Select':
     st.header('Latest News')
     # Get news data and display it
     news_data = get_news()
@@ -74,7 +80,7 @@ if app_mode == 'Select':
 
 
 # Historical Stock Data
-elif app_mode == 'Historical Stock Data':
+elif st.session_state.app_mode == 'Historical Stock Data':
     st.header("Historical Stock Data")
     ticker = st.text_input('Enter ticker symbol', 'AAPL')
     timespan = st.selectbox('Select timespan', options=['minute', 'hour', 'day', 'month', 'year'], index=2)  # Default to 'day'
@@ -93,7 +99,7 @@ elif app_mode == 'Historical Stock Data':
 
 
 # Financials Data
-elif app_mode == 'Company Financials Data':
+elif st.session_state.app_mode == 'Company Financials Data':
     st.header("Company Financials Data")
     ticker = st.text_input('Enter ticker symbol', 'AAPL')
     limit = st.number_input('Enter the number of financial records to retrieve (min=1, max=100)', min_value=1, max_value=100, value=30) # Default to 30
@@ -109,7 +115,7 @@ elif app_mode == 'Company Financials Data':
 
 
 # Company Detail
-elif app_mode == 'Company Detail':
+elif st.session_state.app_mode == 'Company Detail':
     st.header("Company Detail")
     ticker = st.text_input('Enter ticker symbol', 'AAPL').upper()
     
@@ -183,7 +189,7 @@ elif app_mode == 'Company Detail':
             st.error(str(e))
 
 # Stock Splits Data
-elif app_mode == 'Stock Splits Data':
+elif st.session_state.app_mode == 'Stock Splits Data':
     st.header("Stock Splits Data")
     ticker = st.text_input('Enter ticker symbol (optional)')
 
@@ -210,7 +216,7 @@ elif app_mode == 'Stock Splits Data':
         display_data_with_default_sort(df_splits, 'Execution Date')
 
 # Dividends Data
-elif app_mode == 'Dividends Data':
+elif st.session_state.app_mode == 'Dividends Data':
     st.header("Dividends Data")
     ticker = st.text_input('Enter ticker symbol', 'AAPL').upper()
     limit = st.number_input('Limit', min_value=1, max_value=1000, value=50, step=1)
