@@ -56,7 +56,7 @@ st.session_state.app_mode = st.sidebar.selectbox(
 
 
 # Top-level header
-if st.session_state.app_mode is 'Select' and st.session_state['authenticated'] is True:
+if st.session_state.app_mode == 'Select' and st.session_state['authenticated']:
     st.header('Latest News')
     # Get news data and display it
     news_data = get_news()
@@ -80,11 +80,12 @@ if st.session_state.app_mode is 'Select' and st.session_state['authenticated'] i
 
         # Display news title, summary, author, published date, and tickers
         st.markdown(f"##### {title}")
-        if image_url:  # If the news has an image, display it
-            st.image(image_url, width=300)  # Image width is set to 300 pixels
-            st.write(f"**Summary:**\n{escaped_description}")
-            st.markdown(f"Author: {author}, Published on: {published_date}")
-            st.write(f"Tickers: {tickers}")
+        # Check if the image_url exists and is not None or empty
+        if image_url and image_url.strip():
+            st.image(image_url, width=300)  # Display the image if available
+        st.write(f"**Summary:**\n{escaped_description}")
+        st.markdown(f"Author: {author}, Published on: {published_date}")
+        st.write(f"Tickers: {tickers}")
         
         # Display a link to read more
         st.write(f"[Read more - external link]({article_url})")
