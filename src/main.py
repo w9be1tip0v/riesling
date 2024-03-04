@@ -33,16 +33,21 @@ st.title('Polygon Data Viewer')
 # Initialize the session state of authenticated
 if 'authenticated' not in st.session_state:
     st.session_state['authenticated'] = None
+    st.session_state['login_attempt'] = None
 
 # Check the authentication status
-if st.session_state['authenticated'] is None:
+if st.session_state['authenticated'] is None and st.session_state['login_attempt'] is None:
     st.session_state['authenticated'] = authenticate()
-    st.warning("Please log in to view the data.")
-
-elif st.session_state['authenticated'] is False:
+    st.session_state['login_attempt'] = True
+elif st.session_state['authenticated'] is None and st.session_state['login_attempt'] is True:
+    st.session_state['authenticated'] = authenticate()
+elif st.session_state['authenticated'] is False and st.session_state['login_attempt'] is None:
+    st.session_state['authenticated'] = authenticate()
+    st.session_state['login_attempt'] = True
+    st.error("Authentication failed. Please try again.")
+elif st.session_state['authenticated'] is False and st.session_state['login_attempt'] is True:
     st.session_state['authenticated'] = authenticate()
     st.error("Authentication failed. Please try again.")
-
 elif st.session_state['authenticated']:
     # Authentication succeeded
     
