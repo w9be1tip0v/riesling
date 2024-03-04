@@ -1,8 +1,8 @@
-## :hatched_chick:Polygon Data Viewer
+## :hatched_chick: Polygon Data Viewer
 This is an application to check financial data from [Polygon API](https://polygon.io) developed by Streamlit.<BR>
 You can check news, companies informations, historical data, and earnings data.
 
-## :rocket:Usage for Developers
+### :rocket: Usage for Developers
 The application is developed via devcontainer and docker, therefore you can develop it the same environment locally using .devcontainer/devcontainer.json.<BR>
 Developers need setup API_KEY in secrets.toml under .streamlit directory like below.
 
@@ -22,7 +22,7 @@ API_KEY = "Y0UR_POLYGON_API_HERE"
 
 For more informations, read the [official documents](https://docs.streamlit.io/streamlit-community-cloud/deploy-your-app/secrets-management).
 
-# :bulb:Tips
+### :bulb: Tips
 The application is fully depended on Polygon API.<BR>
 IF the app shows error status 4XX or 5XX, PLEASE CHECK YOUR API KEY AND POLYGON API SERVER STATUS BELOW.
 
