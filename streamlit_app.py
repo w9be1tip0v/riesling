@@ -1,4 +1,5 @@
 import streamlit as st
+import streamlit_authenticator as stauth
 import pandas as pd
 import plotly.graph_objects as go
 import requests
@@ -86,6 +87,27 @@ def setup_logging():
     logger.addHandler(handler)
 
     return logger
+
+# Define the authentication function
+def authenticate():
+    # Read the credentials from the secrets.toml file
+    creds_raw = st.secrets["credentials"]["usernames"]
+    creds = {username: {key: value for key, value in user.items()} for username, user in creds_raw.items()}
+    
+    # Instantiate the Authenticator
+    authenticator = stauth.Authenticate(
+        credentials={"usernames": creds},
+        cookie_name=st.secrets["cookie"]["name"],
+        key=st.secrets["cookie"]["key"],
+        cookie_expiry_days=st.secrets["cookie"]["expiry_days"],
+    )
+    
+    # Try the login process and return True or False based on the result
+    name, authenticated, username = authenticator.login("main")
+    if authenticated:
+        return True
+    else:
+        return False
 
 
 #### Define the Streamlit app mode ####
@@ -291,20 +313,40 @@ def plot_candlestick_chart(df):
     fig.update_layout(title='Candlestick Chart', xaxis_rangeslider_visible=False)
     st.plotly_chart(fig, use_container_width=True)
 
-
 ### Streamlit UI ###
 
-# Display the app title
-st.title("Polygon Data Viewer")
+# Display the title of the app
+st.title('Polygon Data Viewer')
 
-# Sidebar
-app_mode = st.sidebar.selectbox(
+
+### Authentication ###
+
+# Initialize the session state of authenticated
+if 'authenticated' not in st.session_state:
+    st.session_state['authenticated'] = None
+
+# Check the authentication status
+if st.session_state['authenticated'] is None:
+    st.session_state['authenticated'] = authenticate()
+elif st.session_state['authenticated'] is False:
+    st.session_state['authenticated'] = authenticate()
+elif st.session_state['authenticated']:
+    # Authentication succeeded
+
+
+# Set the app mode to 'Select' if it's not set
+    if 'app_mode' not in st.session_state:
+        st.session_state.app_mode = 'Select'
+
+# Sidebar to select the market data to view
+st.session_state.app_mode = st.sidebar.selectbox(
     'Choose the Market Data to View:',
     ['Select', 'Company Detail', 'Historical Stock Data', 'Company Financials Data', 'Stock Splits Data', 'Dividends Data']
 )
 
+
 # Top-level header
-if app_mode == 'Select':
+if st.session_state.app_mode == 'Select' and st.session_state['authenticated']:
     st.header('Latest News')
     # Get news data and display it
     news_data = get_news()
@@ -328,11 +370,12 @@ if app_mode == 'Select':
 
         # Display news title, summary, author, published date, and tickers
         st.markdown(f"##### {title}")
-        if image_url:  # If the news has an image, display it
-            st.image(image_url, width=300)  # Image width is set to 300 pixels
-            st.write(f"**Summary:**\n{escaped_description}")
-            st.markdown(f"Author: {author}, Published on: {published_date}")
-            st.write(f"Tickers: {tickers}")
+        # Check if the image_url exists and is not None or empty
+        if image_url and image_url.strip():
+            st.image(image_url, width=300)  # Display the image if available
+        st.write(f"**Summary:**\n{escaped_description}")
+        st.markdown(f"Author: {author}, Published on: {published_date}")
+        st.write(f"Tickers: {tickers}")
         
         # Display a link to read more
         st.write(f"[Read more - external link]({article_url})")
@@ -340,7 +383,7 @@ if app_mode == 'Select':
 
 
 # Historical Stock Data
-elif app_mode == 'Historical Stock Data':
+elif st.session_state.app_mode is 'Historical Stock Data' and st.session_state['authenticated'] is True:
     st.header("Historical Stock Data")
     ticker = st.text_input('Enter ticker symbol', 'AAPL')
     timespan = st.selectbox('Select timespan', options=['minute', 'hour', 'day', 'month', 'year'], index=2)  # Default to 'day'
@@ -359,7 +402,7 @@ elif app_mode == 'Historical Stock Data':
 
 
 # Financials Data
-elif app_mode == 'Company Financials Data':
+elif st.session_state.app_mode is 'Company Financials Data' and st.session_state['authenticated'] is True:
     st.header("Company Financials Data")
     ticker = st.text_input('Enter ticker symbol', 'AAPL')
     limit = st.number_input('Enter the number of financial records to retrieve (min=1, max=100)', min_value=1, max_value=100, value=30) # Default to 30
@@ -375,7 +418,7 @@ elif app_mode == 'Company Financials Data':
 
 
 # Company Detail
-elif app_mode == 'Company Detail':
+elif st.session_state.app_mode is 'Company Detail' and st.session_state['authenticated'] is True:
     st.header("Company Detail")
     ticker = st.text_input('Enter ticker symbol', 'AAPL').upper()
     
@@ -449,7 +492,7 @@ elif app_mode == 'Company Detail':
             st.error(str(e))
 
 # Stock Splits Data
-elif app_mode == 'Stock Splits Data':
+elif st.session_state.app_mode is 'Stock Splits Data' and st.session_state['authenticated'] is True:
     st.header("Stock Splits Data")
     ticker = st.text_input('Enter ticker symbol (optional)')
 
@@ -476,7 +519,7 @@ elif app_mode == 'Stock Splits Data':
         display_data_with_default_sort(df_splits, 'Execution Date')
 
 # Dividends Data
-elif app_mode == 'Dividends Data':
+elif st.session_state.app_mode is 'Dividends Data' and st.session_state['authenticated'] is True:
     st.header("Dividends Data")
     ticker = st.text_input('Enter ticker symbol', 'AAPL').upper()
     limit = st.number_input('Limit', min_value=1, max_value=1000, value=50, step=1)
@@ -507,5 +550,3 @@ elif app_mode == 'Dividends Data':
             display_data_with_default_sort(df_dividends, 'Declaration Date')
         else:
             st.error("No dividends data found.")
-
-
