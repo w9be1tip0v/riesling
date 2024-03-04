@@ -316,7 +316,7 @@ def plot_candlestick_chart(df):
 ### Streamlit UI ###
 
 # Display the title of the app
-st.title('Polygon Data Viewer')
+st.title(':hatched_chick: Polygon Data Viewer')
 
 
 ### Authentication ###
