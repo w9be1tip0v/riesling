@@ -18,6 +18,18 @@ your-LOCAL-repository/
 
 ```toml, secrets.toml
 API_KEY = "Y0UR_POLYGON_API_HERE"
+
+[credentials]
+[credentials.usernames.ADMIN]
+name = "NAME_HERE"
+password = "PASSWORD_HERE"
+logged_in = false
+
+[cookie]
+name = "COOKIE_NAME_HERE"
+key = "SECURITY_KEY_HERE"
+expiry_days = 30
+
 ```
 
 For more informations, read the [official documents](https://docs.streamlit.io/streamlit-community-cloud/deploy-your-app/secrets-management).
