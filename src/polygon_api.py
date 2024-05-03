@@ -1,13 +1,10 @@
 import streamlit as st
 import requests
 import pandas as pd
-import os
-from dotenv import load_dotenv
 import config.log_config
 
-# Read the API_KEY from .env file
-load_dotenv()
-API_KEY = os.getenv('API_KEY')
+# Read the API_KEY from secrets
+API_KEY = st.secrets['API_KEY']
 
 # Initialize the logger
 logger = config.log_config.setup_logging()

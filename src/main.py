@@ -28,7 +28,7 @@ if API_KEY is None:
     st.stop()
 
 # Display the title of the app
-st.title('Polygon Data Viewer')
+st.title(':Phatched_chick: Polygon Data Viewer')
 
 # Initialize the session state of authenticated
 if 'authenticated' not in st.session_state:
