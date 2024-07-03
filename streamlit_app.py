@@ -6,8 +6,10 @@ import os
 import logging
 from logging.handlers import TimedRotatingFileHandler
 from datetime import datetime
-from logto import LogtoClient, LogtoConfig 
-
+from logto import LogtoClient, LogtoConfig, Storage, UserInfoScope
+from functools import wraps
+from flask import g, jsonify, redirect, session
+from client import client
 
 # Metadata
 st.set_page_config(
@@ -31,39 +33,55 @@ if API_KEY is None:
 
 ### Configure the Streamlit app ###
 
-# Initialize authenticator
-def setup_logto_client():
-    LOGTO_ENDPOINT = st.secrets["LOGTO_ENDPOINT"]
-    LOGTO_APP_ID = st.secrets["LOGTO_APP_ID"]
-    LOGTO_APP_SECRET = st.secrets["LOGTO_APP_SECRET"]
-    LOGTO_REDIRECT_URI = st.secrets["LOGTO_REDIRECT_URI"]
+# Custom session storage class for Logto integration with Flask
+class SessionStorage(Storage):
+    def get(self, key: str):
+        return session.get(key, None)
 
-    if not all([LOGTO_ENDPOINT, LOGTO_APP_ID, LOGTO_APP_SECRET, LOGTO_REDIRECT_URI]):
-        raise ValueError("One or more Logto environment variables are not set")
+    def set(self, key: str, value: str):
+        session[key] = value
 
-    config = LogtoConfig(
-        endpoint=LOGTO_ENDPOINT,
-        appId=LOGTO_APP_ID,
-        appSecret=LOGTO_APP_SECRET,
-        redirectUri=LOGTO_REDIRECT_URI
-    )
+    def delete(self, key: str):
+        session.pop(key, None)
 
-    client = LogtoClient(config)
-    return client
+# Logto client initialization
+LOGTO_ENDPOINT = os.getenv('LOGTO_ENDPOINT')
+LOGTO_APP_ID = os.getenv('LOGTO_APP_ID')
+LOGTO_APP_SECRET = os.getenv('LOGTO_APP_SECRET')
+LOGTO_REDIRECT_URI = os.getenv('LOGTO_REDIRECT_URI')
 
-def get_login_url(client):
-    return client.sign_in_uri
+config = LogtoConfig(
+    endpoint=LOGTO_ENDPOINT,
+    appId=LOGTO_APP_ID,
+    appSecret=LOGTO_APP_SECRET,
+    scopes=[
+        UserInfoScope.email,
+        UserInfoScope.organizations,
+        UserInfoScope.organization_roles,
+        UserInfoScope.custom_data,
+    ]
+)
 
-def handle_callback(client, auth_code):
-    client.handle_sign_in_callback(auth_code)
+client = LogtoClient(config, storage=SessionStorage())
 
-def logout(client):
-    return client.sign_out_uri(post_logout_redirect_uri=client.config.redirectUri)
+# Logto authenticator
+def authenticated(shouldRedirect: bool = False, fetchUserInfo: bool = False):
+    def decorator(func):
+        @wraps(func)
+        async def wrapper(*args, **kwargs):
+            if not client.is_authenticated():
+                if shouldRedirect:
+                    return redirect("/sign-in")
+                return jsonify({"error": "Not authenticated"}), 401
 
-def get_auth_code():
-    query_params = st.experimental_get_query_params()
-    return query_params.get('code', [None])[0]
-
+            g.user = (
+                await client.fetch_user_info()
+                if fetchUserInfo
+                else client.get_id_token_claims()
+            )
+            return await func(*args, **kwargs)
+        return wrapper
+    return decorator
     
 # Apply default sort and display the data
 def display_data_with_default_sort(df, sort_column):
@@ -123,31 +141,20 @@ def setup_logging():
 
 ### Authenticator
 
-# Initialize LogtoClient
-try:
-    client = setup_logto_client()
-except Exception as e:
-    st.error(f"Failed to initialize LogtoClient: {e}")
-    st.stop()
-
-# Check if user is authenticated
-auth_code = get_auth_code()
+auth_code = st.experimental_get_query_params().get('code', [None])[0]
 if auth_code:
-    try:
-        handle_callback(client, auth_code)
-    except Exception as e:
-        st.error(f"Failed to handle callback: {e}")
+    client.handle_sign_in_callback(auth_code)
 
-# Check if user has a valid session
 if not client.is_authenticated():
-    # Show login button
-    login_url = get_login_url(client)
-    st.write(f'<a href="{login_url}" target="_self">Click here to log in</a>', unsafe_allow_html=True)
+    login_url = client.get_sign_in_uri(redirect_uri=os.getenv('LOGTO_REDIRECT_URI'))
+    st.markdown(f'<a href="{login_url}" target="_self">Click here to log in</a>', unsafe_allow_html=True)
+    st.stop()
 else:
-    # Show logout button
     if st.button('Logout'):
-        logout_url = logout(client)
-        st.write(f'<a href="{logout_url}" target="_self">Logout</a>', unsafe_allow_html=True)
+        logout_url = client.get_sign_out_uri(post_logout_redirect_uri=os.getenv('LOGTO_REDIRECT_URI'))
+        st.markdown(f'<a href="{logout_url}" target="_self">Logout</a>', unsafe_allow_html=True)
+        st.stop()
+
 
 #### Define the Streamlit app mode ####
 
