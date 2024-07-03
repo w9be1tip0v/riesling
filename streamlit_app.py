@@ -67,7 +67,7 @@ def login():
     st.write(f"[Log in with Logto]({login_url})")
 
 def logout():
-    logout_url = client.get_sign_out_url(post_logout_redirect_uri="http://localhost:8501")
+    logout_url = client.get_sign_out_url(post_logout_redirect_uri="https://riesling.protected.app")
     client.sign_out()
     st.experimental_set_query_params()
     st.write(f"[Log out from Logto]({logout_url})")
