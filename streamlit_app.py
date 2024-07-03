@@ -56,17 +56,18 @@ client = LogtoClient(
         endpoint=LOGTO_ENDPOINT,
         appId=LOGTO_APP_ID,
         appSecret=LOGTO_APP_SECRET,
+        redirectUri=LOGTO_REDIRECT_URI,
     ),
     storage=StreamlitSessionStorage(),
 )
 
 def login():
-    login_url = client.get_sign_in_url(redirect_uri=LOGTO_REDIRECT_URI)
+    login_url = client.get_sign_in_url()
     st.experimental_set_query_params({"redirect_url": login_url})
     st.write(f"[Log in with Logto]({login_url})")
 
 def logout():
-    logout_url = client.get_sign_out_url(post_logout_redirect_uri=LOGTO_REDIRECT_URI)
+    logout_url = client.get_sign_out_url(post_logout_redirect_uri="http://localhost:8501")
     client.sign_out()
     st.experimental_set_query_params()
     st.write(f"[Log out from Logto]({logout_url})")
@@ -337,20 +338,18 @@ def plot_candlestick_chart(df):
 
 
 ### Authentication
+# Check authentication status
 if not authenticated():
     login()
 else:
     # Display the title of the app
-    st.title('Polygon Data Viewer')
+    st.title(':hatched_chick: Polygon Data Viewer')
     
     # Logout button
     if st.button('Logout'):
         logout()
 
 ### Streamlit UI ###
-
-# Display the title of the app
-st.title(':hatched_chick: Polygon Data Viewer')
 
 # Sidebar
 app_mode = st.sidebar.selectbox(
