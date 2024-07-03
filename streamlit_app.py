@@ -62,13 +62,13 @@ client = LogtoClient(
 )
 
 def login():
-    login_url = client.get_sign_in_url()
+    login_url = client.getSignInUrl()
     st.experimental_set_query_params({"redirect_url": login_url})
     st.write(f"[Log in with Logto]({login_url})")
 
 def logout():
-    logout_url = client.get_sign_out_url(post_logout_redirect_uri="https://riesling.protected.app")
-    client.sign_out()
+    logout_url = client.getSignOutUrl(post_logout_redirect_uri="http://riesling.protected.app")
+    client.signOut()
     st.experimental_set_query_params()
     st.write(f"[Log out from Logto]({logout_url})")
 
@@ -342,11 +342,12 @@ if not authenticated():
     login()
 else:
     # Display the title of the app
-    st.title(':hatched_chick: Polygon Data Viewer')
+    st.title('Polygon Data Viewer')
     
     # Logout button
     if st.button('Logout'):
         logout()
+
 
 ### Streamlit UI ###
 
