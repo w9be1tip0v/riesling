@@ -63,7 +63,9 @@ client = LogtoClient(
 
 def login():
     login_url = client.get_sign_in_url()
-    st.experimental_set_query_params({"redirect_url": login_url})
+    # Encode the login URL as a string before setting the query parameter
+    encoded_login_url = login_url.encode('utf-8')
+    st.experimental_set_query_params({"redirect_url": encoded_login_url})
     st.write(f"[Log in with Logto]({login_url})")
 
 def logout():
@@ -74,7 +76,6 @@ def logout():
 
 def authenticated():
     return client.has_tokens()
-
 
 # Apply default sort and display the data
 def display_data_with_default_sort(df, sort_column):
