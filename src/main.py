@@ -1,12 +1,11 @@
 import streamlit as st
-import streamlit_authenticator as sa
+import os
 import pandas as pd
 from datetime import datetime
 from polygon_api import get_historical_data_as_df, get_financials_as_df, create_financials_dataframe, get_company_details, get_stock_splits, get_dividends_data, get_news
 from chart import plot_candlestick_chart
 from config.display_config import display_data_with_default_sort, escape_markdown
-from authenticator import authenticate
-
+from authenticator import get_login_url, get_access_token, get_user_info
 
 # Metadata
 st.set_page_config(
@@ -27,33 +26,28 @@ if API_KEY is None:
     st.error("API_KEY is not set in .env file")
     st.stop()
 
+# Authentication
+st.session_state['logged_in'] = st.session_state.get('logged_in', False)
+
+if not st.session_state['logged_in']:
+    if 'code' in st.experimental_get_query_params():
+        auth_code = st.experimental_get_query_params()['code'][0]
+        access_token = get_access_token(auth_code)
+        user_info = get_user_info(access_token)
+        st.session_state['logged_in'] = True
+        st.session_state['user_info'] = user_info
+        st.experimental_set_query_params()  # Clear the URL parameters
+    else:
+        login_url = get_login_url()
+        st.markdown(f"[Login with Logto]({login_url})")
+        st.stop()
+
+
 # Display the title of the app
 st.title(':Phatched_chick: Polygon Data Viewer')
 
-# Initialize the session state of authenticated
-if 'authenticated' not in st.session_state:
-    st.session_state['authenticated'] = None
-
-# Check the authentication status
-if st.session_state['authenticated'] is None:
-    st.session_state['authenticated'] = authenticate()
-elif st.session_state['authenticated'] is False:
-    st.session_state['authenticated'] = authenticate()
-elif st.session_state['authenticated']:
-    # Authentication succeeded
     
 ### Streamlit UI ###
-
-# Set the app mode to 'Select' if it's not set
-    if 'app_mode' not in st.session_state:
-        st.session_state.app_mode = 'Select'
-
-# Sidebar to select the market data to view
-st.session_state.app_mode = st.sidebar.selectbox(
-    'Choose the Market Data to View:',
-    ['Select', 'Company Detail', 'Historical Stock Data', 'Company Financials Data', 'Stock Splits Data', 'Dividends Data']
-)
-
 
 # Top-level header
 if st.session_state.app_mode == 'Select' and st.session_state['authenticated']:
