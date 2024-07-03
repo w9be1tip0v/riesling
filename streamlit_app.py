@@ -43,9 +43,9 @@ def setup_logto_client():
 
     config = LogtoConfig(
         endpoint=LOGTO_ENDPOINT,
-        app_id=LOGTO_APP_ID,
-        app_secret=LOGTO_APP_SECRET,
-        redirect_uri=LOGTO_REDIRECT_URI
+        appId=LOGTO_APP_ID,
+        appSecret=LOGTO_APP_SECRET,
+        redirectUri=LOGTO_REDIRECT_URI
     )
 
     client = LogtoClient(config)
@@ -411,7 +411,7 @@ if app_mode == 'Select':
 
 
 # Historical Stock Data
-elif app_mode is 'Historical Stock Data':
+elif app_mode == 'Historical Stock Data':
     st.header("Historical Stock Data")
     ticker = st.text_input('Enter ticker symbol', 'AAPL')
     timespan = st.selectbox('Select timespan', options=['minute', 'hour', 'day', 'month', 'year'], index=2)  # Default to 'day'
@@ -430,7 +430,7 @@ elif app_mode is 'Historical Stock Data':
 
 
 # Financials Data
-elif app_mode is 'Company Financials Data':
+elif app_mode == 'Company Financials Data':
     st.header("Company Financials Data")
     ticker = st.text_input('Enter ticker symbol', 'AAPL')
     limit = st.number_input('Enter the number of financial records to retrieve (min=1, max=100)', min_value=1, max_value=100, value=30) # Default to 30
@@ -446,7 +446,7 @@ elif app_mode is 'Company Financials Data':
 
 
 # Company Detail
-elif app_mode is 'Company Detail':
+elif app_mode == 'Company Detail':
     st.header("Company Detail")
     ticker = st.text_input('Enter ticker symbol', 'AAPL').upper()
     
@@ -520,7 +520,7 @@ elif app_mode is 'Company Detail':
             st.error(str(e))
 
 # Stock Splits Data
-elif app_mode is 'Stock Splits Data':
+elif app_mode == 'Stock Splits Data':
     st.header("Stock Splits Data")
     ticker = st.text_input('Enter ticker symbol (optional)')
 
@@ -547,7 +547,7 @@ elif app_mode is 'Stock Splits Data':
         display_data_with_default_sort(df_splits, 'Execution Date')
 
 # Dividends Data
-elif app_mode is 'Dividends Data':
+elif app_mode == 'Dividends Data':
     st.header("Dividends Data")
     ticker = st.text_input('Enter ticker symbol', 'AAPL').upper()
     limit = st.number_input('Limit', min_value=1, max_value=1000, value=50, step=1)
