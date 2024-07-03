@@ -21,13 +21,19 @@ st.set_page_config(
     }
 )
 
-
-# Read the API key from the secrets.toml file (stored in the .streamlit directory)
+# Read secrets
 API_KEY = st.secrets["API_KEY"]
+LOGTO_ENDPOINT = st.secrets["LOGTO_ENDPOINT"]
+LOGTO_APP_ID = st.secrets["LOGTO_APP_ID"]
+LOGTO_APP_SECRET = st.secrets["LOGTO_APP_SECRET"]
+LOGTO_REDIRECT_URI = st.secrets["LOGTO_REDIRECT_URI"]
 if API_KEY is None:
     st.error("API_KEY is not set in .env file")
     st.stop()
 
+# Initialize LogtoClient
+auth_config = LogtoAuthConfig(endpoint=LOGTO_ENDPOINT, app_id=LOGTO_APP_ID, app_secret=LOGTO_APP_SECRET, redirect_uri=LOGTO_REDIRECT_URI)
+client = LogtoClient(auth_config)
 
 ### Configure the Streamlit app ###
     
@@ -87,33 +93,20 @@ def setup_logging():
 
     return logger
 
-# Logto configuration
-LOGTO_ENDPOINT = st.secrets["LOGTO_ENDPOINT"]
-LOGTO_APP_ID = st.secrets["LOGTO_APP_ID"]
-LOGTO_APP_SECRET = st.secrets["LOGTO_APP_SECRET"]
-LOGTO_REDIRECT_URI = st.secrets["LOGTO_REDIRECT_URI"]
+### Authenticator
 
-
-# Initialize LogtoClient
-auth_config = LogtoAuthConfig(endpoint=LOGTO_ENDPOINT, app_id=LOGTO_APP_ID, app_secret=LOGTO_APP_SECRET, redirect_uri=LOGTO_REDIRECT_URI)
-client = LogtoClient(auth_config)
-
-client = LogtoClient(
-    endpoint=LOGTO_ENDPOINT,
-    app_id=LOGTO_APP_ID,
-    app_secret=LOGTO_APP_SECRET,
-    redirect_uri=LOGTO_REDIRECT_URI
-)
-
-def get_login_url():
-    return client.get_authorize_url()
-
-def get_access_token(auth_code):
-    return client.get_access_token(auth_code)
-
-def get_user_info(access_token):
-    return client.get_user_info(access_token)
-
+# Check if user is authenticated
+if not client.is_authenticated():
+    # Show login button
+    if st.button('Login'):
+        login_url = client.get_login_url()
+        st.experimental_set_query_params(code="")
+        st.write(f'<a href="{login_url}" target="_self">Click here to log in</a>', unsafe_allow_html=True)
+else:
+    # Show logout button
+    if st.button('Logout'):
+        client.logout()
+        st.experimental_rerun()
 
 #### Define the Streamlit app mode ####
 
