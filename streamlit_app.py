@@ -139,14 +139,21 @@ if auth_code:
         st.error(f"Failed to handle callback: {e}")
 
 # Check if user has a valid session
-if not client.is_authenticated():
+try:
+    user_info = client.get_id_token_claims()
+except Exception as e:
+    user_info = None
+
+if not user_info:
     # Show login button
     login_url = get_login_url(client)
     st.write(f'<a href="{login_url}" target="_self">Click here to log in</a>', unsafe_allow_html=True)
 else:
     # Show logout button
     if st.button('Logout'):
-        st.write(f'<a href="{logout(client)}" target="_self">Logout</a>', unsafe_allow_html=True)
+        logout_url = logout(client)
+        st.write(f'<a href="{logout_url}" target="_self">Logout</a>', unsafe_allow_html=True)
+
 
 #### Define the Streamlit app mode ####
 
