@@ -6,8 +6,7 @@ import os
 import logging
 from logging.handlers import TimedRotatingFileHandler
 from datetime import datetime
-from logto import LogtoClient
-from logto.config import LogtoConfig
+from logto import LogtoClient, LogtoConfig 
 
 
 # Metadata
