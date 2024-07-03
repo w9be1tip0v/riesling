@@ -7,9 +7,9 @@ import logging
 from logging.handlers import TimedRotatingFileHandler
 from datetime import datetime
 from logto import LogtoClient, LogtoConfig, Storage, UserInfoScope
-from functools import wraps
-from flask import g, jsonify, redirect, session
+from typing import Union
 from client import client
+
 
 # Metadata
 st.set_page_config(
@@ -34,15 +34,16 @@ if API_KEY is None:
 ### Configure the Streamlit app ###
 
 # Custom session storage class for Logto integration with Flask
-class SessionStorage(Storage):
-    def get(self, key: str):
-        return session.get(key, None)
+class StreamlitSessionStorage(Storage):
+    def get(self, key: str) -> Union[str, None]:
+        return st.session_state.get(key)
 
-    def set(self, key: str, value: str):
-        session[key] = value
+    def set(self, key: str, value: Union[str, None]) -> None:
+        st.session_state[key] = value
 
-    def delete(self, key: str):
-        session.pop(key, None)
+    def delete(self, key: str) -> None:
+        if key in st.session_state:
+            del st.session_state[key]
 
 # Logto client initialization
 LOGTO_ENDPOINT = os.getenv('LOGTO_ENDPOINT')
@@ -50,39 +51,31 @@ LOGTO_APP_ID = os.getenv('LOGTO_APP_ID')
 LOGTO_APP_SECRET = os.getenv('LOGTO_APP_SECRET')
 LOGTO_REDIRECT_URI = os.getenv('LOGTO_REDIRECT_URI')
 
-config = LogtoConfig(
-    endpoint=LOGTO_ENDPOINT,
-    appId=LOGTO_APP_ID,
-    appSecret=LOGTO_APP_SECRET,
-    scopes=[
-        UserInfoScope.email,
-        UserInfoScope.organizations,
-        UserInfoScope.organization_roles,
-        UserInfoScope.custom_data,
-    ]
+
+client = LogtoClient(
+    LogtoConfig(
+        endpoint=LOGTO_ENDPOINT,
+        appId=LOGTO_APP_ID,
+        appSecret=LOGTO_APP_SECRET,
+    ),
+    storage=StreamlitSessionStorage(),
 )
 
-client = LogtoClient(config, storage=SessionStorage())
+def login():
+    login_url = client.get_sign_in_url(redirect_uri=LOGTO_REDIRECT_URI)
+    st.experimental_set_query_params({"redirect_url": login_url})
+    st.write(f"[Log in with Logto]({login_url})")
 
-# Logto authenticator
-def authenticated(shouldRedirect: bool = False, fetchUserInfo: bool = False):
-    def decorator(func):
-        @wraps(func)
-        async def wrapper(*args, **kwargs):
-            if not client.is_authenticated():
-                if shouldRedirect:
-                    return redirect("/sign-in")
-                return jsonify({"error": "Not authenticated"}), 401
+def logout():
+    logout_url = client.get_sign_out_url(post_logout_redirect_uri=LOGTO_REDIRECT_URI)
+    client.sign_out()
+    st.experimental_set_query_params()
+    st.write(f"[Log out from Logto]({logout_url})")
 
-            g.user = (
-                await client.fetch_user_info()
-                if fetchUserInfo
-                else client.get_id_token_claims()
-            )
-            return await func(*args, **kwargs)
-        return wrapper
-    return decorator
-    
+def authenticated():
+    return client.has_tokens()
+
+
 # Apply default sort and display the data
 def display_data_with_default_sort(df, sort_column):
     if not df.empty:
@@ -138,22 +131,6 @@ def setup_logging():
     logger.addHandler(handler)
 
     return logger
-
-### Authenticator
-
-auth_code = st.experimental_get_query_params().get('code', [None])[0]
-if auth_code:
-    client.handle_sign_in_callback(auth_code)
-
-if not client.is_authenticated():
-    login_url = client.get_sign_in_uri(redirect_uri=os.getenv('LOGTO_REDIRECT_URI'))
-    st.markdown(f'<a href="{login_url}" target="_self">Click here to log in</a>', unsafe_allow_html=True)
-    st.stop()
-else:
-    if st.button('Logout'):
-        logout_url = client.get_sign_out_uri(post_logout_redirect_uri=os.getenv('LOGTO_REDIRECT_URI'))
-        st.markdown(f'<a href="{logout_url}" target="_self">Logout</a>', unsafe_allow_html=True)
-        st.stop()
 
 
 #### Define the Streamlit app mode ####
@@ -361,30 +338,15 @@ def plot_candlestick_chart(df):
 
 
 ### Authentication
-try:
-    client = setup_logto_client()
-except Exception as e:
-    st.error(f"Failed to initialize LogtoClient: {e}")
-    st.stop()
-
-# Check if user is authenticated
-auth_code = get_auth_code()
-if auth_code:
-    try:
-        handle_callback(client, auth_code)
-    except Exception as e:
-        st.error(f"Failed to handle callback: {e}")
-
-# Check if user has a valid session
-if not client.is_authenticated():
-    # Show login button
-    login_url = get_login_url(client)
-    st.write(f'<a href="{login_url}" target="_self">Click here to log in</a>', unsafe_allow_html=True)
+if not authenticated():
+    login()
 else:
-    # Show logout button
+    # Display the title of the app
+    st.title('Polygon Data Viewer')
+    
+    # Logout button
     if st.button('Logout'):
-        logout(client)
-
+        logout()
 
 ### Streamlit UI ###
 
