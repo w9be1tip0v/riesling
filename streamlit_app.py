@@ -73,7 +73,7 @@ def logout():
     st.write(f"[Log out from Logto]({logout_url})")
 
 def authenticated():
-    return client.is_authenticated()
+    return client.isAuthenticated()
 
 # Apply default sort and display the data
 def display_data_with_default_sort(df, sort_column):
