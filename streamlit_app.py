@@ -6,7 +6,7 @@ import os
 import logging
 from logging.handlers import TimedRotatingFileHandler
 from datetime import datetime
-from logto import LogtoClient, LogtoAuthConfig
+from logto import LogtoClient, LogtoConfig
 
 # Metadata
 st.set_page_config(
@@ -32,7 +32,7 @@ if API_KEY is None:
     st.stop()
 
 # Initialize LogtoClient
-auth_config = LogtoAuthConfig(endpoint=LOGTO_ENDPOINT, app_id=LOGTO_APP_ID, app_secret=LOGTO_APP_SECRET, redirect_uri=LOGTO_REDIRECT_URI)
+auth_config = LogtoConfig(endpoint=LOGTO_ENDPOINT, app_id=LOGTO_APP_ID, app_secret=LOGTO_APP_SECRET, redirect_uri=LOGTO_REDIRECT_URI)
 client = LogtoClient(auth_config)
 
 ### Configure the Streamlit app ###
