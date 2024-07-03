@@ -28,6 +28,9 @@ if API_KEY is None:
     st.error("API_KEY is not set in .env file")
     st.stop()
 
+
+### Configure the Streamlit app ###
+
 # Initialize authenticator
 def setup_logto_client():
     LOGTO_ENDPOINT = st.secrets["LOGTO_ENDPOINT"]
@@ -61,7 +64,6 @@ def get_auth_code():
     query_params = st.experimental_get_query_params()
     return query_params.get('code', [None])[0]
 
-### Configure the Streamlit app ###
     
 # Apply default sort and display the data
 def display_data_with_default_sort(df, sort_column):
