@@ -52,13 +52,13 @@ def setup_logto_client():
     return client
 
 def get_login_url(client):
-    return client.sign_in()
+    return client.sign_in_uri
 
 def handle_callback(client, auth_code):
     client.handle_sign_in_callback(auth_code)
 
 def logout(client):
-    return client.sign_out(post_logout_redirect_uri=client.config.redirectUri)
+    return client.sign_out_uri(post_logout_redirect_uri=client.config.redirectUri)
 
 def get_auth_code():
     query_params = st.experimental_get_query_params()
@@ -139,12 +139,7 @@ if auth_code:
         st.error(f"Failed to handle callback: {e}")
 
 # Check if user has a valid session
-try:
-    user_info = client.get_id_token_claims()
-except Exception as e:
-    user_info = None
-
-if not user_info:
+if not client.is_authenticated():
     # Show login button
     login_url = get_login_url(client)
     st.write(f'<a href="{login_url}" target="_self">Click here to log in</a>', unsafe_allow_html=True)
@@ -153,7 +148,6 @@ else:
     if st.button('Logout'):
         logout_url = logout(client)
         st.write(f'<a href="{logout_url}" target="_self">Logout</a>', unsafe_allow_html=True)
-
 
 #### Define the Streamlit app mode ####
 
