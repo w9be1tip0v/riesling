@@ -57,7 +57,7 @@ def login(client):
     st.write(f'<a href="{login_url}" target="_self">Click here to log in</a>', unsafe_allow_html=True)
 
 def logout(client):
-    client.logout()
+    client.clear_tokens()
     st.experimental_rerun()
 
 def get_auth_code():
@@ -135,7 +135,8 @@ auth_code = get_auth_code()
 if auth_code:
     client.handle_callback(auth_code)
 
-if not client.is_authenticated():
+# Check if user has tokens
+if not client.has_tokens:
     # Show login button
     login(client)
 else:
