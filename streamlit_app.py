@@ -1,5 +1,4 @@
 import streamlit as st
-import streamlit_authenticator as stauth
 import pandas as pd
 import plotly.graph_objects as go
 import requests
@@ -7,7 +6,7 @@ import os
 import logging
 from logging.handlers import TimedRotatingFileHandler
 from datetime import datetime
-
+from logto import LogtoClient, LogtoAuthConfig
 
 # Metadata
 st.set_page_config(
@@ -88,26 +87,32 @@ def setup_logging():
 
     return logger
 
-# Define the authentication function
-def authenticate():
-    # Read the credentials from the secrets.toml file
-    creds_raw = st.secrets["credentials"]["usernames"]
-    creds = {username: {key: value for key, value in user.items()} for username, user in creds_raw.items()}
-    
-    # Instantiate the Authenticator
-    authenticator = stauth.Authenticate(
-        credentials={"usernames": creds},
-        cookie_name=st.secrets["cookie"]["name"],
-        key=st.secrets["cookie"]["key"],
-        cookie_expiry_days=st.secrets["cookie"]["expiry_days"],
-    )
-    
-    # Try the login process and return True or False based on the result
-    name, authenticated, username = authenticator.login("main")
-    if authenticated:
-        return True
-    else:
-        return False
+# Logto configuration
+LOGTO_ENDPOINT = st.secrets["LOGTO_ENDPOINT"]
+LOGTO_APP_ID = st.secrets["LOGTO_APP_ID"]
+LOGTO_APP_SECRET = st.secrets["LOGTO_APP_SECRET"]
+LOGTO_REDIRECT_URI = st.secrets["LOGTO_REDIRECT_URI"]
+
+
+# Initialize LogtoClient
+auth_config = LogtoAuthConfig(endpoint=LOGTO_ENDPOINT, app_id=LOGTO_APP_ID, app_secret=LOGTO_APP_SECRET, redirect_uri=LOGTO_REDIRECT_URI)
+client = LogtoClient(auth_config)
+
+client = LogtoClient(
+    endpoint=LOGTO_ENDPOINT,
+    app_id=LOGTO_APP_ID,
+    app_secret=LOGTO_APP_SECRET,
+    redirect_uri=LOGTO_REDIRECT_URI
+)
+
+def get_login_url():
+    return client.get_authorize_url()
+
+def get_access_token(auth_code):
+    return client.get_access_token(auth_code)
+
+def get_user_info(access_token):
+    return client.get_user_info(access_token)
 
 
 #### Define the Streamlit app mode ####
@@ -313,30 +318,29 @@ def plot_candlestick_chart(df):
     fig.update_layout(title='Candlestick Chart', xaxis_rangeslider_visible=False)
     st.plotly_chart(fig, use_container_width=True)
 
+
+### Authentication
+if not client.is_authenticated():
+    # Show login button
+    if st.button('Login'):
+        login_url = client.get_login_url()
+        st.experimental_set_query_params(code="")
+        st.write(f'<a href="{login_url}" target="_self">Click here to log in</a>', unsafe_allow_html=True)
+else:
+    # Show logout button
+    if st.button('Logout'):
+        client.logout()
+        st.experimental_rerun()
+
+
 ### Streamlit UI ###
 
 # Display the title of the app
 st.title(':hatched_chick: Polygon Data Viewer')
 
-
-### Authentication ###
-
-# Initialize the session state of authenticated
-if 'authenticated' not in st.session_state:
-    st.session_state['authenticated'] = None
-
-# Check the authentication status
-if st.session_state['authenticated'] is None:
-    st.session_state['authenticated'] = authenticate()
-elif st.session_state['authenticated'] is False:
-    st.session_state['authenticated'] = authenticate()
-elif st.session_state['authenticated']:
-    # Authentication succeeded
-
-
 # Set the app mode to 'Select' if it's not set
-    if 'app_mode' not in st.session_state:
-        st.session_state.app_mode = 'Select'
+if 'app_mode' not in st.session_state:
+    st.session_state.app_mode = 'Select'
 
 # Sidebar to select the market data to view
 st.session_state.app_mode = st.sidebar.selectbox(

@@ -167,6 +167,9 @@ cython_debug/
 .cache/
 .cached_data/
 
+# CSV files
+csv/
+
 # Streamlit secrets
 .streamlit/secrets.toml
 

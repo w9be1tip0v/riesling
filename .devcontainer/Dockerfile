@@ -14,8 +14,8 @@ ENV PYTHONPATH "/workspace:$PYTHONPATH"
 COPY . ./
 
 # Install the required libraries
-RUN pip install --no-cache-dir -r requirements.txt
 RUN pip install --upgrade pip
+RUN pip install --no-cache-dir -r requirements.txt
 
 # Expose the port the app runs on
 EXPOSE 8501

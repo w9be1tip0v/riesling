@@ -1,23 +1,27 @@
-import streamlit as st
-import streamlit_authenticator as stauth
+import os
+from logto import LogtoClient
+from dotenv import load_dotenv
 
-# Define the authentication function
-def authenticate():
-    # Read the credentials from the secrets.toml file
-    creds_raw = st.secrets["credentials"]["usernames"]
-    creds = {username: {key: value for key, value in user.items()} for username, user in creds_raw.items()}
-    
-    # Instantiate the Authenticator
-    authenticator = stauth.Authenticate(
-        credentials={"usernames": creds},
-        cookie_name=st.secrets["cookie"]["name"],
-        key=st.secrets["cookie"]["key"],
-        cookie_expiry_days=st.secrets["cookie"]["expiry_days"],
-    )
-    
-    # Try the login process and return True or False based on the result
-    name, authenticated, username = authenticator.login("main")
-    if authenticated:
-        return True
-    else:
-        return False
+load_dotenv()
+
+# Logto configuration
+LOGTO_ENDPOINT = os.getenv('LOGTO_ENDPOINT')
+LOGTO_APP_ID = os.getenv('LOGTO_APP_ID')
+LOGTO_APP_SECRET = os.getenv('LOGTO_APP_SECRET')
+LOGTO_REDIRECT_URI = os.getenv('LOGTO_REDIRECT_URI')
+
+client = LogtoClient(
+    endpoint=LOGTO_ENDPOINT,
+    app_id=LOGTO_APP_ID,
+    app_secret=LOGTO_APP_SECRET,
+    redirect_uri=LOGTO_REDIRECT_URI
+)
+
+def get_login_url():
+    return client.get_authorize_url()
+
+def get_access_token(auth_code):
+    return client.get_access_token(auth_code)
+
+def get_user_info(access_token):
+    return client.get_user_info(access_token)
