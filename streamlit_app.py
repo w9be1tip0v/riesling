@@ -8,7 +8,6 @@ from logging.handlers import TimedRotatingFileHandler
 from datetime import datetime
 from logto import LogtoClient, LogtoConfig, Storage, UserInfoScope
 from typing import Union
-from client import client
 
 
 # Metadata
