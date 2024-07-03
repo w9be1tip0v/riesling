@@ -51,13 +51,14 @@ def setup_logto_client():
     client = LogtoClient(config)
     return client
 
-def login(client):
-    login_url = client.get_login_url()
-    st.experimental_set_query_params(code="")
-    st.write(f'<a href="{login_url}" target="_self">Click here to log in</a>', unsafe_allow_html=True)
+def get_login_url(client):
+    return client.get_sign_in_url()
+
+def handle_callback(client, auth_code):
+    client.handle_sign_in_callback(auth_code)
 
 def logout(client):
-    client.clear_tokens()
+    client.sign_out(post_logout_redirect_uri=client.config.redirectUri)
     st.experimental_rerun()
 
 def get_auth_code():
@@ -357,17 +358,29 @@ def plot_candlestick_chart(df):
 
 
 ### Authentication
+try:
+    client = setup_logto_client()
+except Exception as e:
+    st.error(f"Failed to initialize LogtoClient: {e}")
+    st.stop()
+
+# Check if user is authenticated
+auth_code = get_auth_code()
+if auth_code:
+    try:
+        handle_callback(client, auth_code)
+    except Exception as e:
+        st.error(f"Failed to handle callback: {e}")
+
+# Check if user has a valid session
 if not client.is_authenticated():
     # Show login button
-    if st.button('Login'):
-        login_url = client.get_login_url()
-        st.experimental_set_query_params(code="")
-        st.write(f'<a href="{login_url}" target="_self">Click here to log in</a>', unsafe_allow_html=True)
+    login_url = get_login_url(client)
+    st.write(f'<a href="{login_url}" target="_self">Click here to log in</a>', unsafe_allow_html=True)
 else:
     # Show logout button
     if st.button('Logout'):
-        client.logout()
-        st.experimental_rerun()
+        logout(client)
 
 
 ### Streamlit UI ###
