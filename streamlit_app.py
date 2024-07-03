@@ -6,7 +6,9 @@ import os
 import logging
 from logging.handlers import TimedRotatingFileHandler
 from datetime import datetime
-from logto import LogtoClient, LogtoConfig
+from logto import LogtoClient
+from logto.config import LogtoConfig
+
 
 # Metadata
 st.set_page_config(
@@ -23,17 +25,42 @@ st.set_page_config(
 
 # Read secrets
 API_KEY = st.secrets["API_KEY"]
-LOGTO_ENDPOINT = st.secrets["LOGTO_ENDPOINT"]
-LOGTO_APP_ID = st.secrets["LOGTO_APP_ID"]
-LOGTO_APP_SECRET = st.secrets["LOGTO_APP_SECRET"]
-LOGTO_REDIRECT_URI = st.secrets["LOGTO_REDIRECT_URI"]
 if API_KEY is None:
     st.error("API_KEY is not set in .env file")
     st.stop()
 
-# Initialize LogtoClient
-auth_config = LogtoConfig(endpoint=LOGTO_ENDPOINT, app_id=LOGTO_APP_ID, app_secret=LOGTO_APP_SECRET, redirect_uri=LOGTO_REDIRECT_URI)
-client = LogtoClient(auth_config)
+# Initialize authenticator
+def setup_logto_client():
+    LOGTO_ENDPOINT = st.secrets["LOGTO_ENDPOINT"]
+    LOGTO_APP_ID = st.secrets["LOGTO_APP_ID"]
+    LOGTO_APP_SECRET = st.secrets["LOGTO_APP_SECRET"]
+    LOGTO_REDIRECT_URI = st.secrets["LOGTO_REDIRECT_URI"]
+
+    if not all([LOGTO_ENDPOINT, LOGTO_APP_ID, LOGTO_APP_SECRET, LOGTO_REDIRECT_URI]):
+        raise ValueError("One or more Logto environment variables are not set")
+
+    config = LogtoConfig(
+        endpoint=LOGTO_ENDPOINT,
+        app_id=LOGTO_APP_ID,
+        app_secret=LOGTO_APP_SECRET,
+        redirect_uri=LOGTO_REDIRECT_URI
+    )
+
+    client = LogtoClient(config)
+    return client
+
+def login(client):
+    login_url = client.get_login_url()
+    st.experimental_set_query_params(code="")
+    st.write(f'<a href="{login_url}" target="_self">Click here to log in</a>', unsafe_allow_html=True)
+
+def logout(client):
+    client.logout()
+    st.experimental_rerun()
+
+def get_auth_code():
+    query_params = st.experimental_get_query_params()
+    return query_params.get('code', [None])[0]
 
 ### Configure the Streamlit app ###
     
@@ -95,18 +122,25 @@ def setup_logging():
 
 ### Authenticator
 
+# Initialize LogtoClient
+try:
+    client = setup_logto_client()
+except Exception as e:
+    st.error(f"Failed to initialize LogtoClient: {e}")
+    st.stop()
+
 # Check if user is authenticated
+auth_code = get_auth_code()
+if auth_code:
+    client.handle_callback(auth_code)
+
 if not client.is_authenticated():
     # Show login button
-    if st.button('Login'):
-        login_url = client.get_login_url()
-        st.experimental_set_query_params(code="")
-        st.write(f'<a href="{login_url}" target="_self">Click here to log in</a>', unsafe_allow_html=True)
+    login(client)
 else:
     # Show logout button
     if st.button('Logout'):
-        client.logout()
-        st.experimental_rerun()
+        logout(client)
 
 #### Define the Streamlit app mode ####
 
