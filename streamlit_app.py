@@ -133,10 +133,18 @@ except Exception as e:
 # Check if user is authenticated
 auth_code = get_auth_code()
 if auth_code:
-    client.handle_callback(auth_code)
+    try:
+        client.handle_callback(auth_code)
+    except Exception as e:
+        st.error(f"Failed to handle callback: {e}")
 
-# Check if user has tokens
-if not client.has_tokens:
+# Check if user has a valid session
+try:
+    user_info = client.fetch_user_info()
+except Exception as e:
+    user_info = None
+
+if not user_info:
     # Show login button
     login(client)
 else:
