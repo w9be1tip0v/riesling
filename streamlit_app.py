@@ -6,7 +6,7 @@ import os
 import logging
 from logging.handlers import TimedRotatingFileHandler
 from datetime import datetime
-from logto import LogtoClient, LogtoAuthConfig
+from logto import LogtoClient
 
 # Metadata
 st.set_page_config(
