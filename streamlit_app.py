@@ -53,7 +53,7 @@ if "authenticated" not in st.session_state:
 
 # Handle login
 if st.button("Login"):
-    authorization_url = client.get_authorization_url()
+    authorization_url = LOGTO_REDIRECT_URI
     st.session_state.auth_url = authorization_url
     st.write("Access Login URL: ", authorization_url)
 
