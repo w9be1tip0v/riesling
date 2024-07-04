@@ -93,10 +93,6 @@ def setup_logging():
 
     return logger
 
-# Initialize LogtoClient
-auth_config = LogtoAuthConfig(endpoint=LOGTO_ENDPOINT, app_id=LOGTO_APP_ID, app_secret=LOGTO_APP_SECRET, redirect_uri=LOGTO_REDIRECT_URI)
-client = LogtoClient(auth_config)
-
 
 #### Define the Streamlit app mode ####
 
