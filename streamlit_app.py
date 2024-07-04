@@ -45,10 +45,10 @@ class StreamlitSessionStorage(Storage):
             del st.session_state[key]
 
 # Logto client initialization
-LOGTO_ENDPOINT = os.getenv('LOGTO_ENDPOINT')
-LOGTO_APP_ID = os.getenv('LOGTO_APP_ID')
-LOGTO_APP_SECRET = os.getenv('LOGTO_APP_SECRET')
-LOGTO_REDIRECT_URI = os.getenv('LOGTO_REDIRECT_URI')
+LOGTO_ENDPOINT = st.secrets["LOGTO_ENDPOINT"]
+LOGTO_APP_ID = st.secrets["LOGTO_APP_ID"]
+LOGTO_APP_SECRET = st.secrets["LOGTO_APP_SECRET"]
+LOGTO_REDIRECT_URI = st.secrets["LOGTO_REDIRECT_URI"]
 
 
 client = LogtoClient(
