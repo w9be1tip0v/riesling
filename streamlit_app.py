@@ -46,6 +46,25 @@ logto_config = {
 }
 
 client = LogtoClient(config=logto_config)
+
+# Check if authenticated
+if "authenticated" not in st.session_state:
+    st.session_state.authenticated = False
+
+# Handle login
+if st.button("Login"):
+    authorization_url = client.get_authorization_url()
+    st.session_state.auth_url = authorization_url
+    st.write("Access Login URL: ", authorization_url)
+
+# Handle authorization callback
+if st.experimental_get_query_params().get("code"):
+    code = st.experimental_get_query_params().get("code")[0]
+    token = client.exchange_code_for_token(code)
+    st.session_state.authenticated = True
+    st.session_state.token = token
+    st.write("Login authoridated!")
+
     
 # Apply default sort and display the data
 def display_data_with_default_sort(df, sort_column):
@@ -102,10 +121,6 @@ def setup_logging():
     logger.addHandler(handler)
 
     return logger
-
-# Initialize LogtoClient
-auth_config = LogtoAuthConfig(endpoint=LOGTO_ENDPOINT, app_id=LOGTO_APP_ID, app_secret=LOGTO_APP_SECRET, redirect_uri=LOGTO_REDIRECT_URI)
-client = LogtoClient(auth_config)
 
 
 #### Define the Streamlit app mode ####
@@ -312,32 +327,9 @@ def plot_candlestick_chart(df):
     st.plotly_chart(fig, use_container_width=True)
 
 
-### Authentication
-# Check if user is authenticated
-if "authenticated" not in st.session_state:
-    st.session_state.authenticated = False
-
-if st.button("Login"):
-    authorization_url = client.get_authorization_url()
-    st.session_state.auth_url = authorization_url
-    st.write("ログインURLにアクセスしてください: ", authorization_url)
-
-# 認証コールバック処理
-if st.experimental_get_query_params().get("code"):
-    code = st.experimental_get_query_params().get("code")[0]
-    token = client.exchange_code_for_token(code)
-    st.session_state.authenticated = True
-    st.session_state.token = token
-    st.write("ログインに成功しました！")
-
-# 認証済みの場合の表示
+# Only show app content if authenticated
 if st.session_state.authenticated:
-    st.write("ようこそ、ユーザー！")
-    st.write("トークン: ", st.session_state.token)
-else:
-    st.write("ログインしてください。")
 
-    
 ### Streamlit UI ###
 
 # Display the title of the app
