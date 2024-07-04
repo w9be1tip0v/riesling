@@ -32,48 +32,6 @@ if API_KEY is None:
 
 ### Configure the Streamlit app ###
 
-# Custom session storage class for Logto integration with Flask
-class StreamlitSessionStorage(Storage):
-    def get(self, key: str) -> Union[str, None]:
-        return st.session_state.get(key)
-
-    def set(self, key: str, value: Union[str, None]) -> None:
-        st.session_state[key] = value
-
-    def delete(self, key: str) -> None:
-        if key in st.session_state:
-            del st.session_state[key]
-
-# Logto client initialization
-LOGTO_ENDPOINT = st.secrets["LOGTO_ENDPOINT"]
-LOGTO_APP_ID = st.secrets["LOGTO_APP_ID"]
-LOGTO_APP_SECRET = st.secrets["LOGTO_APP_SECRET"]
-LOGTO_REDIRECT_URI = st.secrets["LOGTO_REDIRECT_URI"]
-
-
-client = LogtoClient(
-    LogtoConfig(
-        endpoint=LOGTO_ENDPOINT,
-        appId=LOGTO_APP_ID,
-        appSecret=LOGTO_APP_SECRET,
-        redirectUri=LOGTO_REDIRECT_URI,
-    ),
-    storage=StreamlitSessionStorage(),
-)
-
-def login():
-    login_url = "https://riesling.protected.app"
-    st.experimental_set_query_params({"redirect_url": login_url})
-    st.write(f"[Log in with Logto]({login_url})")
-
-def logout():
-    logout_url = "http://riesling.protected.app"
-    client.signOut()
-    st.experimental_set_query_params()
-    st.write(f"[Log out from Logto]({logout_url})")
-
-def authenticated():
-    return client.isAuthenticated()
 
 # Apply default sort and display the data
 def display_data_with_default_sort(df, sort_column):
@@ -334,19 +292,6 @@ def plot_candlestick_chart(df):
 
     fig.update_layout(title='Candlestick Chart', xaxis_rangeslider_visible=False)
     st.plotly_chart(fig, use_container_width=True)
-
-
-### Authentication
-# Check authentication status
-if not authenticated():
-    login()
-else:
-    # Display the title of the app
-    st.title('Polygon Data Viewer')
-    
-    # Logout button
-    if st.button('Logout'):
-        logout()
 
 
 ### Streamlit UI ###
