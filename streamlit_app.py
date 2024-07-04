@@ -6,9 +6,7 @@ import os
 import logging
 from logging.handlers import TimedRotatingFileHandler
 from datetime import datetime
-from logto import LogtoClient, LogtoConfig, Storage, UserInfoScope
-from typing import Union
-
+from logto import LogtoClient, LogtoAuthConfig
 
 # Metadata
 st.set_page_config(
@@ -25,14 +23,30 @@ st.set_page_config(
 
 # Read secrets
 API_KEY = st.secrets["API_KEY"]
+LOGTO_ENDPOINT = st.secrets["LOGTO_ENDPOINT"]
+LOGTO_APP_ID = st.secrets["LOGTO_APP_ID"]
+LOGTO_APP_SECRET = st.secrets["LOGTO_APP_SECRET"]
+LOGTO_REDIRECT_URI = st.secrets["LOGTO_REDIRECT_URI"]
+
+# Read the API key from the secrets.toml file (stored in the .streamlit directory)
+API_KEY = st.secrets["API_KEY"]
 if API_KEY is None:
-    st.error("API_KEY is not set in secret.toml file")
+    st.error("API_KEY is not set in .env file")
     st.stop()
 
 
 ### Configure the Streamlit app ###
 
+# initialize Logto
+logto_config = {
+    "endpoint": LOGTO_ENDPOINT,
+    "appId": LOGTO_APP_ID,
+    "appSecret": LOGTO_APP_SECRET,
+    "redirectUri": LOGTO_REDIRECT_URI,
+}
 
+client = LogtoClient(config=logto_config)
+    
 # Apply default sort and display the data
 def display_data_with_default_sort(df, sort_column):
     if not df.empty:
@@ -88,6 +102,10 @@ def setup_logging():
     logger.addHandler(handler)
 
     return logger
+
+# Initialize LogtoClient
+auth_config = LogtoAuthConfig(endpoint=LOGTO_ENDPOINT, app_id=LOGTO_APP_ID, app_secret=LOGTO_APP_SECRET, redirect_uri=LOGTO_REDIRECT_URI)
+client = LogtoClient(auth_config)
 
 
 #### Define the Streamlit app mode ####
@@ -294,17 +312,50 @@ def plot_candlestick_chart(df):
     st.plotly_chart(fig, use_container_width=True)
 
 
+### Authentication
+# Check if user is authenticated
+if "authenticated" not in st.session_state:
+    st.session_state.authenticated = False
+
+if st.button("Login"):
+    authorization_url = client.get_authorization_url()
+    st.session_state.auth_url = authorization_url
+    st.write("ログインURLにアクセスしてください: ", authorization_url)
+
+# 認証コールバック処理
+if st.experimental_get_query_params().get("code"):
+    code = st.experimental_get_query_params().get("code")[0]
+    token = client.exchange_code_for_token(code)
+    st.session_state.authenticated = True
+    st.session_state.token = token
+    st.write("ログインに成功しました！")
+
+# 認証済みの場合の表示
+if st.session_state.authenticated:
+    st.write("ようこそ、ユーザー！")
+    st.write("トークン: ", st.session_state.token)
+else:
+    st.write("ログインしてください。")
+
+    
 ### Streamlit UI ###
 
-# Sidebar
-app_mode = st.sidebar.selectbox(
-        'Choose the Market Data to View:',
-        ['Select', 'Company Detail', 'Historical Stock Data', 'Company Financials Data', 'Stock Splits Data', 'Dividends Data']
-    )
+# Display the title of the app
+st.title(':hatched_chick: Polygon Data Viewer')
+
+# Set the app mode to 'Select' if it's not set
+if 'app_mode' not in st.session_state:
+    st.session_state.app_mode = 'Select'
+
+# Sidebar to select the market data to view
+st.session_state.app_mode = st.sidebar.selectbox(
+    'Choose the Market Data to View:',
+    ['Select', 'Company Detail', 'Historical Stock Data', 'Company Financials Data', 'Stock Splits Data', 'Dividends Data']
+)
 
 
 # Top-level header
-if app_mode == 'Select':
+if st.session_state.app_mode == 'Select' and st.session_state['authenticated']:
     st.header('Latest News')
     # Get news data and display it
     news_data = get_news()
@@ -341,7 +392,7 @@ if app_mode == 'Select':
 
 
 # Historical Stock Data
-elif app_mode == 'Historical Stock Data':
+elif st.session_state.app_mode is 'Historical Stock Data' and st.session_state['authenticated'] is True:
     st.header("Historical Stock Data")
     ticker = st.text_input('Enter ticker symbol', 'AAPL')
     timespan = st.selectbox('Select timespan', options=['minute', 'hour', 'day', 'month', 'year'], index=2)  # Default to 'day'
@@ -360,7 +411,7 @@ elif app_mode == 'Historical Stock Data':
 
 
 # Financials Data
-elif app_mode == 'Company Financials Data':
+elif st.session_state.app_mode is 'Company Financials Data' and st.session_state['authenticated'] is True:
     st.header("Company Financials Data")
     ticker = st.text_input('Enter ticker symbol', 'AAPL')
     limit = st.number_input('Enter the number of financial records to retrieve (min=1, max=100)', min_value=1, max_value=100, value=30) # Default to 30
@@ -376,7 +427,7 @@ elif app_mode == 'Company Financials Data':
 
 
 # Company Detail
-elif app_mode == 'Company Detail':
+elif st.session_state.app_mode is 'Company Detail' and st.session_state['authenticated'] is True:
     st.header("Company Detail")
     ticker = st.text_input('Enter ticker symbol', 'AAPL').upper()
     
@@ -450,7 +501,7 @@ elif app_mode == 'Company Detail':
             st.error(str(e))
 
 # Stock Splits Data
-elif app_mode == 'Stock Splits Data':
+elif st.session_state.app_mode is 'Stock Splits Data' and st.session_state['authenticated'] is True:
     st.header("Stock Splits Data")
     ticker = st.text_input('Enter ticker symbol (optional)')
 
@@ -477,7 +528,7 @@ elif app_mode == 'Stock Splits Data':
         display_data_with_default_sort(df_splits, 'Execution Date')
 
 # Dividends Data
-elif app_mode == 'Dividends Data':
+elif st.session_state.app_mode is 'Dividends Data' and st.session_state['authenticated'] is True:
     st.header("Dividends Data")
     ticker = st.text_input('Enter ticker symbol', 'AAPL').upper()
     limit = st.number_input('Limit', min_value=1, max_value=1000, value=50, step=1)
