@@ -28,7 +28,7 @@ LOGTO_APP_ID = st.secrets["LOGTO_APP_ID"]
 LOGTO_APP_SECRET = st.secrets["LOGTO_APP_SECRET"]
 LOGTO_ISSUER = st.secrets["LOGTO_ISSUER"]
 LOGTO_JWKS_URI = st.secrets["LOGTO_JWKS_URI"]
-ALGORITHMS = ["RS256"]
+ALGORITHMS = ["ES384"]
 
 
 # Read the API key from the secrets.toml file (stored in the .streamlit directory)
@@ -114,20 +114,22 @@ def verify_jwt(token):
     jwks = get_jwks()
     try:
         unverified_header = jwt.get_unverified_header(token)
-        rsa_key = {}
+        ec_key = {}
         for key in jwks["keys"]:
             if key["kid"] == unverified_header["kid"]:
-                rsa_key = {
+                ec_key = {
                     "kty": key["kty"],
                     "kid": key["kid"],
                     "use": key["use"],
-                    "n": key["n"],
-                    "e": key["e"]
+                    "alg": key["alg"],
+                    "crv": key["crv"],
+                    "x": key["x"],
+                    "y": key["y"]
                 }
-        if rsa_key:
+        if ec_key:
             payload = jwt.decode(
                 token,
-                rsa_key,
+                ec_key,
                 algorithms=ALGORITHMS,
                 issuer=LOGTO_ISSUER
             )

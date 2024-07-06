@@ -9,7 +9,7 @@ load_dotenv()
 
 LOGTO_ISSUER = os.getenv('LOGTO_ISSUER')
 LOGTO_JWKS_URI = os.getenv('LOGTO_JWKS_URI')
-ALGORITHMS = ["RS256"]
+ALGORITHMS = ["ES384"]
 
 # Fetch JWKS data from Logto
 def get_jwks():
@@ -24,20 +24,22 @@ def verify_jwt(token):
     jwks = get_jwks()
     try:
         unverified_header = jwt.get_unverified_header(token)
-        rsa_key = {}
+        ec_key = {}
         for key in jwks["keys"]:
             if key["kid"] == unverified_header["kid"]:
-                rsa_key = {
+                ec_key = {
                     "kty": key["kty"],
                     "kid": key["kid"],
                     "use": key["use"],
-                    "n": key["n"],
-                    "e": key["e"]
+                    "alg": key["alg"],
+                    "crv": key["crv"],
+                    "x": key["x"],
+                    "y": key["y"]
                 }
-        if rsa_key:
+        if ec_key:
             payload = jwt.decode(
                 token,
-                rsa_key,
+                ec_key,
                 algorithms=ALGORITHMS,
                 issuer=LOGTO_ISSUER
             )
