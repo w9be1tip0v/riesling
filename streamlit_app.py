@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
 import requests
+import os
 import logging
 from logging.handlers import TimedRotatingFileHandler
 from datetime import datetime
