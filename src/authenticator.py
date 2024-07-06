@@ -1,3 +1,4 @@
+import streamlit as st
 import os
 import requests
 from jose import jwt
@@ -52,10 +53,10 @@ def verify_jwt(token):
     except Exception as e:
         raise JWTError(f"Unable to parse authentication token: {e}")
 
-def authenticate_request(request_headers):
-    token = request_headers.get("Logto-ID-Token")
+def authenticate_request():
+    token = st.experimental_get_query_params().get("token", [None])[0]
     if not token:
-        return None, "missing required Logto-ID-Token header"
+        return None, "missing required Logto-ID-Token parameter"
     
     try:
         user_info = verify_jwt(token)

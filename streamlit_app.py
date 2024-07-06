@@ -28,6 +28,7 @@ LOGTO_APP_ID = st.secrets["LOGTO_APP_ID"]
 LOGTO_APP_SECRET = st.secrets["LOGTO_APP_SECRET"]
 LOGTO_ISSUER = st.secrets["LOGTO_ISSUER"]
 LOGTO_JWKS_URI = st.secrets["LOGTO_JWKS_URI"]
+ALGORITHMS = ["RS256"]
 
 
 # Read the API key from the secrets.toml file (stored in the .streamlit directory)
@@ -142,10 +143,10 @@ def verify_jwt(token):
     except Exception as e:
         raise JWTError(f"Unable to parse authentication token: {e}")
 
-def authenticate_request(request_headers):
-    token = request_headers.get("Logto-ID-Token")
+def authenticate_request():
+    token = st.experimental_get_query_params().get("token", [None])[0]
     if not token:
-        return None, "missing required Logto-ID-Token header"
+        return None, "missing required Logto-ID-Token parameter"
     
     try:
         user_info = verify_jwt(token)
@@ -353,13 +354,12 @@ def plot_candlestick_chart(df):
 
 
 ### Authentication ###
-request_headers = st.experimental_get_query_params()
-user_info, auth_error = authenticate_request(request_headers)
-
-if auth_error:
-    st.error(f"Authentication error: {auth_error}")
-    st.stop()
-
+if 'user_info' not in st.session_state:
+    user_info, auth_error = authenticate_request()
+    if auth_error:
+        st.error(f"Authentication error: {auth_error}")
+        st.stop()
+    st.session_state['user_info'] = user_info
 
 ### Streamlit UI ###
 

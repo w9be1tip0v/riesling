@@ -27,12 +27,12 @@ if API_KEY is None:
     st.stop()
 
 ### Authentication ###
-request_headers = st.experimental_get_query_params()
-user_info, auth_error = authenticate_request(request_headers)
-
-if auth_error:
-    st.error(f"Authentication error: {auth_error}")
-    st.stop()
+if 'user_info' not in st.session_state:
+    user_info, auth_error = authenticate_request()
+    if auth_error:
+        st.error(f"Authentication error: {auth_error}")
+        st.stop()
+    st.session_state['user_info'] = user_info
 
 # Display the title of the app
 st.title(':Phatched_chick: Polygon Data Viewer')
