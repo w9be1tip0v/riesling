@@ -2,11 +2,11 @@ import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
 import requests
-import os
 import logging
 from logging.handlers import TimedRotatingFileHandler
 from datetime import datetime
-from logto import LogtoClient
+from jose import jwt
+from jose.exceptions import JWTError, ExpiredSignatureError, JWTClaimsError
 
 # Metadata
 st.set_page_config(
@@ -23,17 +23,17 @@ st.set_page_config(
 
 # Read secrets
 API_KEY = st.secrets["API_KEY"]
-LOGTO_ENDPOINT = st.secrets["LOGTO_ENDPOINT"]
 LOGTO_APP_ID = st.secrets["LOGTO_APP_ID"]
 LOGTO_APP_SECRET = st.secrets["LOGTO_APP_SECRET"]
-LOGTO_REDIRECT_URI = st.secrets["LOGTO_REDIRECT_URI"]
+LOGTO_ISSUER = st.secrets["LOGTO_ISSUER"]
+LOGTO_JWKS_URI = st.secrets["LOGTO_JWKS_URI"]
+
 
 # Read the API key from the secrets.toml file (stored in the .streamlit directory)
 API_KEY = st.secrets["API_KEY"]
 if API_KEY is None:
     st.error("API_KEY is not set in .env file")
     st.stop()
-
 
 ### Configure the Streamlit app ###
     
@@ -98,6 +98,59 @@ def setup_logging():
 
 # Initialize the logger
 logger = setup_logging()
+
+# Fetch JWKS data from Logto
+def get_jwks():
+    response = requests.get(LOGTO_JWKS_URI)
+    if response.status_code == 200:
+        return response.json()
+    else:
+        raise Exception("Failed to fetch JWKS data")
+
+# Verify JWT token
+def verify_jwt(token):
+    jwks = get_jwks()
+    try:
+        unverified_header = jwt.get_unverified_header(token)
+        rsa_key = {}
+        for key in jwks["keys"]:
+            if key["kid"] == unverified_header["kid"]:
+                rsa_key = {
+                    "kty": key["kty"],
+                    "kid": key["kid"],
+                    "use": key["use"],
+                    "n": key["n"],
+                    "e": key["e"]
+                }
+        if rsa_key:
+            payload = jwt.decode(
+                token,
+                rsa_key,
+                algorithms=ALGORITHMS,
+                issuer=LOGTO_ISSUER
+            )
+            return payload
+        else:
+            raise JWTError("Unable to find appropriate key")
+    except ExpiredSignatureError:
+        raise JWTError("Token has expired")
+    except JWTClaimsError:
+        raise JWTError("Incorrect claims, please check the audience and issuer")
+    except JWTError as e:
+        raise e
+    except Exception as e:
+        raise JWTError(f"Unable to parse authentication token: {e}")
+
+def authenticate_request(request_headers):
+    token = request_headers.get("Logto-ID-Token")
+    if not token:
+        return None, "missing required Logto-ID-Token header"
+    
+    try:
+        user_info = verify_jwt(token)
+        return user_info, None
+    except JWTError as e:
+        return None, str(e)
 
 # Apply comma formatting to the entire DataFrame
 def format_with_comma(df):
@@ -298,24 +351,29 @@ def plot_candlestick_chart(df):
     st.plotly_chart(fig, use_container_width=True)
 
 
+### Authentication ###
+request_headers = st.experimental_get_query_params()
+user_info, auth_error = authenticate_request(request_headers)
+
+if auth_error:
+    st.error(f"Authentication error: {auth_error}")
+    st.stop()
+
+
 ### Streamlit UI ###
 
 # Display the title of the app
 st.title(':hatched_chick: Polygon Data Viewer')
 
-# Set the app mode to 'Select' if it's not set
-if 'app_mode' not in st.session_state:
-    st.session_state.app_mode = 'Select'
-
 # Sidebar to select the market data to view
-st.session_state.app_mode = st.sidebar.selectbox(
+app_mode = st.sidebar.selectbox(
     'Choose the Market Data to View:',
     ['Select', 'Company Detail', 'Historical Stock Data', 'Company Financials Data', 'Stock Splits Data', 'Dividends Data']
 )
 
 
 # Top-level header
-if st.session_state.app_mode == 'Select' and st.session_state['authenticated']:
+if app_mode == 'Select':
     st.header('Latest News')
     # Get news data and display it
     news_data = get_news()
@@ -352,7 +410,7 @@ if st.session_state.app_mode == 'Select' and st.session_state['authenticated']:
 
 
 # Historical Stock Data
-elif st.session_state.app_mode is 'Historical Stock Data' and st.session_state['authenticated'] is True:
+elif app_mode == 'Historical Stock Data':
     st.header("Historical Stock Data")
     ticker = st.text_input('Enter ticker symbol', 'AAPL')
     timespan = st.selectbox('Select timespan', options=['minute', 'hour', 'day', 'month', 'year'], index=2)  # Default to 'day'
@@ -371,7 +429,7 @@ elif st.session_state.app_mode is 'Historical Stock Data' and st.session_state['
 
 
 # Financials Data
-elif st.session_state.app_mode is 'Company Financials Data' and st.session_state['authenticated'] is True:
+elif app_mode == 'Company Financials Data':
     st.header("Company Financials Data")
     ticker = st.text_input('Enter ticker symbol', 'AAPL')
     limit = st.number_input('Enter the number of financial records to retrieve (min=1, max=100)', min_value=1, max_value=100, value=30) # Default to 30
@@ -387,7 +445,7 @@ elif st.session_state.app_mode is 'Company Financials Data' and st.session_state
 
 
 # Company Detail
-elif st.session_state.app_mode is 'Company Detail' and st.session_state['authenticated'] is True:
+elif app_mode == 'Company Detail':
     st.header("Company Detail")
     ticker = st.text_input('Enter ticker symbol', 'AAPL').upper()
     
@@ -461,7 +519,7 @@ elif st.session_state.app_mode is 'Company Detail' and st.session_state['authent
             st.error(str(e))
 
 # Stock Splits Data
-elif st.session_state.app_mode is 'Stock Splits Data' and st.session_state['authenticated'] is True:
+elif app_mode == 'Stock Splits Data':
     st.header("Stock Splits Data")
     ticker = st.text_input('Enter ticker symbol (optional)')
 
@@ -488,7 +546,7 @@ elif st.session_state.app_mode is 'Stock Splits Data' and st.session_state['auth
         display_data_with_default_sort(df_splits, 'Execution Date')
 
 # Dividends Data
-elif st.session_state.app_mode is 'Dividends Data' and st.session_state['authenticated'] is True:
+elif app_mode == 'Dividends Data':
     st.header("Dividends Data")
     ticker = st.text_input('Enter ticker symbol', 'AAPL').upper()
     limit = st.number_input('Limit', min_value=1, max_value=1000, value=50, step=1)

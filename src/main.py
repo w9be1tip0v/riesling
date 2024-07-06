@@ -5,7 +5,7 @@ from datetime import datetime
 from polygon_api import get_historical_data_as_df, get_financials_as_df, create_financials_dataframe, get_company_details, get_stock_splits, get_dividends_data, get_news
 from chart import plot_candlestick_chart
 from config.display_config import display_data_with_default_sort, escape_markdown
-from authenticator import get_login_url, get_access_token, get_user_info
+from authenticator import authenticate_request
 
 # Metadata
 st.set_page_config(
@@ -26,31 +26,27 @@ if API_KEY is None:
     st.error("API_KEY is not set in .env file")
     st.stop()
 
-# Authentication
-st.session_state['logged_in'] = st.session_state.get('logged_in', False)
+### Authentication ###
+request_headers = st.experimental_get_query_params()
+user_info, auth_error = authenticate_request(request_headers)
 
-if not st.session_state['logged_in']:
-    if 'code' in st.experimental_get_query_params():
-        auth_code = st.experimental_get_query_params()['code'][0]
-        access_token = get_access_token(auth_code)
-        user_info = get_user_info(access_token)
-        st.session_state['logged_in'] = True
-        st.session_state['user_info'] = user_info
-        st.experimental_set_query_params()  # Clear the URL parameters
-    else:
-        login_url = get_login_url()
-        st.markdown(f"[Login with Logto]({login_url})")
-        st.stop()
-
+if auth_error:
+    st.error(f"Authentication error: {auth_error}")
+    st.stop()
 
 # Display the title of the app
 st.title(':Phatched_chick: Polygon Data Viewer')
 
+# Sidebar
+app_mode = st.sidebar.selectbox(
+    'Choose the Market Data to View:',
+    ['Select', 'Company Detail', 'Historical Stock Data', 'Company Financials Data', 'Stock Splits Data', 'Dividends Data']
+)
     
 ### Streamlit UI ###
 
 # Top-level header
-if st.session_state.app_mode == 'Select' and st.session_state['authenticated']:
+if app_mode == 'Select':
     st.header('Latest News')
     # Get news data and display it
     news_data = get_news()
@@ -87,7 +83,7 @@ if st.session_state.app_mode == 'Select' and st.session_state['authenticated']:
 
 
 # Historical Stock Data
-elif st.session_state.app_mode is 'Historical Stock Data' and st.session_state['authenticated'] is True:
+elif app_mode == 'Historical Stock Data':
     st.header("Historical Stock Data")
     ticker = st.text_input('Enter ticker symbol', 'AAPL')
     timespan = st.selectbox('Select timespan', options=['minute', 'hour', 'day', 'month', 'year'], index=2)  # Default to 'day'
@@ -106,7 +102,7 @@ elif st.session_state.app_mode is 'Historical Stock Data' and st.session_state['
 
 
 # Financials Data
-elif st.session_state.app_mode is 'Company Financials Data' and st.session_state['authenticated'] is True:
+elif app_mode == 'Company Financials Data':
     st.header("Company Financials Data")
     ticker = st.text_input('Enter ticker symbol', 'AAPL')
     limit = st.number_input('Enter the number of financial records to retrieve (min=1, max=100)', min_value=1, max_value=100, value=30) # Default to 30
@@ -122,7 +118,7 @@ elif st.session_state.app_mode is 'Company Financials Data' and st.session_state
 
 
 # Company Detail
-elif st.session_state.app_mode is 'Company Detail' and st.session_state['authenticated'] is True:
+elif app_mode == 'Company Detail':
     st.header("Company Detail")
     ticker = st.text_input('Enter ticker symbol', 'AAPL').upper()
     
@@ -196,7 +192,7 @@ elif st.session_state.app_mode is 'Company Detail' and st.session_state['authent
             st.error(str(e))
 
 # Stock Splits Data
-elif st.session_state.app_mode is 'Stock Splits Data' and st.session_state['authenticated'] is True:
+elif app_mode == 'Stock Splits Data':
     st.header("Stock Splits Data")
     ticker = st.text_input('Enter ticker symbol (optional)')
 
@@ -223,7 +219,7 @@ elif st.session_state.app_mode is 'Stock Splits Data' and st.session_state['auth
         display_data_with_default_sort(df_splits, 'Execution Date')
 
 # Dividends Data
-elif st.session_state.app_mode is 'Dividends Data' and st.session_state['authenticated'] is True:
+elif app_mode == 'Dividends Data':
     st.header("Dividends Data")
     ticker = st.text_input('Enter ticker symbol', 'AAPL').upper()
     limit = st.number_input('Limit', min_value=1, max_value=1000, value=50, step=1)
