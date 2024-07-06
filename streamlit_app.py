@@ -146,7 +146,7 @@ def verify_jwt(token):
         raise JWTError(f"Unable to parse authentication token: {e}")
 
 def authenticate_request():
-    query_params = st.experimental_get_query_params()
+    query_params = st.query_params()
     token = query_params.get("token", [None])[0]
     if not token:
         return None, "missing required Logto-ID-Token parameter"
