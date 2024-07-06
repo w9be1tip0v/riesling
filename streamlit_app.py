@@ -6,6 +6,7 @@ import os
 import logging
 from logging.handlers import TimedRotatingFileHandler
 from datetime import datetime
+import base64
 from jose import jwt
 from jose.exceptions import JWTError, ExpiredSignatureError, JWTClaimsError
 
@@ -109,51 +110,41 @@ def get_jwks():
     else:
         raise Exception("Failed to fetch JWKS data")
 
-# Verify JWT token
-def verify_jwt(token):
+# Get public key from JWKS
+def get_public_key(token):
     jwks = get_jwks()
-    try:
-        unverified_header = jwt.get_unverified_header(token)
-        ec_key = {}
-        for key in jwks["keys"]:
-            if key["kid"] == unverified_header["kid"]:
-                ec_key = {
-                    "kty": key["kty"],
-                    "kid": key["kid"],
-                    "use": key["use"],
-                    "alg": key["alg"],
-                    "crv": key["crv"],
-                    "x": key["x"],
-                    "y": key["y"]
-                }
-        if ec_key:
-            payload = jwt.decode(
-                token,
-                ec_key,
-                algorithms=ALGORITHMS,
-                issuer=LOGTO_ISSUER
-            )
-            return payload
-        else:
-            raise JWTError("Unable to find appropriate key")
-    except ExpiredSignatureError:
-        raise JWTError("Token has expired")
-    except JWTClaimsError:
-        raise JWTError("Incorrect claims, please check the audience and issuer")
-    except JWTError as e:
-        raise e
-    except Exception as e:
-        raise JWTError(f"Unable to parse authentication token: {e}")
+    unverified_header = jwt.get_unverified_header(token)
+    for key in jwks['keys']:
+        if key['kid'] == unverified_header['kid']:
+            return {
+                'kty': key['kty'],
+                'crv': key['crv'],
+                'x': key['x'],
+                'y': key['y'],
+            }
+    raise JWTError('Public key not found.')
 
+# Decode JWT token and get claims
+def decode_id_token(token):
+    parts = token.split('.')
+    if len(parts) != 3:
+        raise ValueError("Invalid ID token")
+
+    payload = parts[1]
+    decoded_payload = base64.urlsafe_b64decode(payload + "==")
+    claims = json.loads(decoded_payload)
+    return claims
+
+# Authenticate request
 def authenticate_request():
     token = st.query_params.get("token")
     if not token:
         return None, "missing required Logto-ID-Token parameter"
-    
+
     try:
-        user_info = verify_jwt(token)
-        return user_info, None
-    except JWTError as e:
+        claims = decode_id_token(token)
+        return claims, None
+    except ValueError as e:
         return None, str(e)
 
 # Apply comma formatting to the entire DataFrame
