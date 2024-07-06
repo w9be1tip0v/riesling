@@ -7,8 +7,7 @@ import logging
 from logging.handlers import TimedRotatingFileHandler
 from datetime import datetime
 import base64
-from jose import jwt
-from jose.exceptions import JWTError, ExpiredSignatureError, JWTClaimsError
+from json
 
 # Metadata
 st.set_page_config(
@@ -110,20 +109,6 @@ def get_jwks():
     else:
         raise Exception("Failed to fetch JWKS data")
 
-# Get public key from JWKS
-def get_public_key(token):
-    jwks = get_jwks()
-    unverified_header = jwt.get_unverified_header(token)
-    for key in jwks['keys']:
-        if key['kid'] == unverified_header['kid']:
-            return {
-                'kty': key['kty'],
-                'crv': key['crv'],
-                'x': key['x'],
-                'y': key['y'],
-            }
-    raise JWTError('Public key not found.')
-
 # Decode JWT token and get claims
 def decode_id_token(token):
     parts = token.split('.')
@@ -137,7 +122,9 @@ def decode_id_token(token):
 
 # Authenticate request
 def authenticate_request():
-    token = st.query_params.get("token")
+    st.write("Query parameters:", st.query_params)  # Debugging line
+    token = st.query_params.get("token", [None])[0]
+    st.write("Token from query parameters:", token)  # Debugging line
     if not token:
         return None, "missing required Logto-ID-Token parameter"
 
@@ -349,6 +336,8 @@ def plot_candlestick_chart(df):
 ### Authentication ###
 if 'user_info' not in st.session_state:
     user_info, auth_error = authenticate_request()
+    st.write("User info:", user_info)  # Debugging line
+    st.write("Auth error:", auth_error)  # Debugging line
     if auth_error:
         st.error(f"Authentication error: {auth_error}")
         st.stop()
